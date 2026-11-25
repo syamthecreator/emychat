@@ -34,6 +34,23 @@ class _AuthScreenState extends State<AuthScreen> {
   final _confirmPasswordCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthController>();
+      if (auth.isAuthenticated) {
+        final wsController = context.read<WorkspaceController>();
+        if (wsController.hasWorkspace) {
+          Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
+        } else {
+          Navigator.of(context)
+              .pushReplacementNamed(AppRouter.workspaceOnboarding);
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
@@ -78,12 +95,71 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _continueWithGoogle() async {
+    final auth = context.read<AuthController>();
+    final ok = await auth.continueWithGoogle();
+
+    if (!mounted) return;
+    if (ok) {
+      final wsController = context.read<WorkspaceController>();
+      await wsController.loadWorkspaces();
+      if (!mounted) return;
+
+      if (wsController.hasWorkspace) {
+        Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
+      } else {
+        Navigator.of(context)
+            .pushReplacementNamed(AppRouter.workspaceOnboarding);
+      }
+    } else if (auth.errorMessage != null) {
+      if (auth.errorMessage!.contains('Google OAuth Setup Required')) {
+        showGoogleSetupDialog(
+          context,
+          onConfigured: () async {
+            final success = await auth.continueWithGoogle();
+            if (mounted && success) {
+              final wsController = context.read<WorkspaceController>();
+              await wsController.loadWorkspaces();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed(
+                  wsController.hasWorkspace
+                      ? AppRouter.dashboard
+                      : AppRouter.workspaceOnboarding,
+                );
+              }
+            }
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error.withValues(alpha: 0.9),
+            content: Text(
+              auth.errorMessage!,
+              style: const TextStyle(color: AppColors.onError),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _requestOtp() async {
     final auth = context.read<AuthController>();
     final ok = await auth.requestOtp(_usernameCtrl.text.trim());
 
     if (!mounted) return;
-    if (!ok && auth.errorMessage != null) {
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.surfaceVariant,
+          content: Text(
+            auth.successMessage ?? 'Verification code sent to your email.',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+        ),
+      );
+    } else if (auth.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.error.withValues(alpha: 0.9),
@@ -101,7 +177,17 @@ class _AuthScreenState extends State<AuthScreen> {
     final ok = await auth.verifyOtp(_otpCtrl.text.trim());
 
     if (!mounted) return;
-    if (!ok && auth.errorMessage != null) {
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.surfaceVariant,
+          content: Text(
+            auth.successMessage ?? 'Code verified successfully.',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+        ),
+      );
+    } else if (auth.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.error.withValues(alpha: 0.9),
@@ -202,20 +288,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _formPanel() {
     final auth = context.watch<AuthController>();
-
-    // If authenticated, display loading while entering workspace
-    if (auth.isAuthenticated) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
-        }
-      });
-      return const SizedBox(
-        height: 200,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     final step = auth.step;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
@@ -248,7 +320,14 @@ class _AuthScreenState extends State<AuthScreen> {
           title: 'Welcome Back',
           subtitle: 'Sign in to access your EmyChat workspace.',
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 22),
+        GoogleAuthButton(
+          onPressed: _continueWithGoogle,
+          loading: auth.isLoading,
+        ),
+        const SizedBox(height: 18),
+        const AuthDivider(label: 'or sign in with email'),
+        const SizedBox(height: 18),
         const AuthFieldLabel('Work Email / Mobile Number'),
         AuthTextField(
           controller: _usernameCtrl,

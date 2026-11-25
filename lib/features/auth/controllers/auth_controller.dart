@@ -4,6 +4,7 @@ import 'package:emychat/core/network/api_client.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:emychat/core/services/auth_api_service.dart';
+import 'package:emychat/core/services/google_auth_service.dart';
 
 import '../presentation/models/auth_model.dart';
 
@@ -13,18 +14,25 @@ class AuthController extends ChangeNotifier {
   final AuthApiService _authApiService;
 
   AuthModel _model;
+  String? _resetEmail;
+  String? _verifiedOtp;
+  String? _pendingVerificationEmail;
+  bool _isGoogleConfigured = false;
 
   AuthModel get model => _model;
   AuthStep get step => _model.step;
   bool get isLoading => _model.isLoading;
   int get secondsLeft => _model.secondsLeft;
   bool get isAuthenticated => _model.isAuthenticated;
+  bool get isGoogleConfigured => _isGoogleConfigured;
   String? get userEmail => _model.userEmail;
   String? get userRole => _model.userRole;
   String? get errorMessage => _model.errorMessage;
   String? get successMessage => _model.successMessage;
   bool get canResend => _model.canResend;
   String get timeText => _model.timeText;
+  bool get isVerifyingEmail => _pendingVerificationEmail != null;
+  String? get pendingVerificationEmail => _pendingVerificationEmail;
 
   void setStep(AuthStep step) {
     _model = _model.copyWith(step: step, clearError: true, clearSuccess: true);
@@ -74,7 +82,50 @@ class AuthController extends ChangeNotifier {
       debugPrintStack(stackTrace: stackTrace);
     }
 
+    unawaited(checkGoogleConfig());
+
     notifyListeners();
+  }
+
+  Future<void> checkGoogleConfig() async {
+    try {
+      final config = await _authApiService.getGoogleConfig();
+      _isGoogleConfigured = config['configured'] == true;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<bool> saveGoogleConfig({
+    required String clientId,
+    required String clientSecret,
+  }) async {
+    _model = _model.copyWith(isLoading: true, clearError: true);
+    notifyListeners();
+
+    try {
+      await _authApiService.saveGoogleConfig(
+        clientId: clientId,
+        clientSecret: clientSecret,
+      );
+      _isGoogleConfigured = true;
+      _model = _model.copyWith(
+        isLoading: false,
+        successMessage: 'Google OAuth configuration saved successfully!',
+      );
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _model = _model.copyWith(isLoading: false, errorMessage: e.message);
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to save Google configuration: $e',
+      );
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> signUp({
@@ -89,12 +140,28 @@ class AuthController extends ChangeNotifier {
     );
     notifyListeners();
 
+    final normalizedEmail = email.trim().toLowerCase();
+
     try {
       final result = await _authApiService.register(
         name: name,
-        email: email,
+        email: normalizedEmail,
         password: password,
       );
+
+      // Check if registration requires email verification OTP
+      if (result['requiresVerification'] == true) {
+        _pendingVerificationEmail = normalizedEmail;
+        _startTimer();
+        _model = _model.copyWith(
+          isLoading: false,
+          successMessage:
+              result['message']?.toString() ??
+              'Verification code sent to $normalizedEmail.',
+        );
+        notifyListeners();
+        return false;
+      }
 
       final user = result['user'] as Map<String, dynamic>;
 
@@ -115,6 +182,180 @@ class AuthController extends ChangeNotifier {
       _model = _model.copyWith(
         isLoading: false,
         errorMessage: 'Failed to create account. Please try again.',
+      );
+    }
+
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> verifyEmailOtp(String otp) async {
+    _model = _model.copyWith(isLoading: true, clearError: true);
+    notifyListeners();
+
+    final trimmed = otp.trim();
+    if (trimmed.length < 4) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Please enter a valid 4-digit verification code.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    final email = _pendingVerificationEmail;
+    if (email == null || email.isEmpty) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Verification session expired. Please sign up again.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      final result = await _authApiService.verifyEmailOtp(
+        email: email,
+        otp: trimmed,
+      );
+
+      final user = result['user'] as Map<String, dynamic>;
+      _pendingVerificationEmail = null;
+
+      _model = _model.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        userEmail: user['email'] as String?,
+        userRole: 'Creator',
+        successMessage: 'Email verified successfully! Welcome to EmyChat.',
+      );
+
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(isLoading: false, errorMessage: error.message);
+    } catch (_) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to verify code. Please try again.',
+      );
+    }
+
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> resendEmailVerificationOtp() async {
+    final email = _pendingVerificationEmail;
+    if (email == null) return false;
+
+    _model = _model.copyWith(isLoading: true, clearError: true);
+    notifyListeners();
+
+    try {
+      final message = await _authApiService.resendVerificationOtp(email);
+      _startTimer();
+      _model = _model.copyWith(
+        isLoading: false,
+        successMessage: message,
+      );
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(isLoading: false, errorMessage: error.message);
+    } catch (_) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to resend verification code.',
+      );
+    }
+
+    notifyListeners();
+    return false;
+  }
+
+  void cancelEmailVerification() {
+    _pendingVerificationEmail = null;
+    _model = _model.copyWith(clearError: true, clearSuccess: true);
+    notifyListeners();
+  }
+
+  Future<bool> continueWithGoogle({
+    String? idToken,
+    String? email,
+    String? name,
+  }) async {
+    _model = _model.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    notifyListeners();
+
+    try {
+      // If explicit credentials were provided
+      if (idToken != null || email != null) {
+        final result = await _authApiService.googleAuth(
+          idToken: idToken,
+          email: email,
+          name: name,
+        );
+
+        final user = result['user'] as Map<String, dynamic>;
+
+        _model = _model.copyWith(
+          isLoading: false,
+          isAuthenticated: true,
+          userEmail: user['email'] as String?,
+          userRole: 'Creator',
+          successMessage: 'Welcome to EmyChat!',
+        );
+
+        notifyListeners();
+        return true;
+      }
+
+      // Otherwise launch real Google OAuth flow
+      final result = await GoogleAuthService.instance.authenticateWithGoogle(
+        authApiService: _authApiService,
+        isPreConfigured: _isGoogleConfigured ? true : null,
+      );
+
+      if (result == null) {
+        _model = _model.copyWith(isLoading: false);
+        notifyListeners();
+        return false;
+      }
+
+      if (result['needsConfig'] == true) {
+        _isGoogleConfigured = false;
+        _model = _model.copyWith(
+          isLoading: false,
+          errorMessage:
+              'Google OAuth Setup Required: Please configure Google Client ID & Secret',
+        );
+        notifyListeners();
+        return false;
+      }
+
+      final user = result['user'] as Map<String, dynamic>;
+
+      _model = _model.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        userEmail: user['email'] as String?,
+        userRole: 'Creator',
+        successMessage: 'Welcome to EmyChat!',
+      );
+
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(isLoading: false, errorMessage: error.message);
+    } catch (e) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Google Sign-In failed: $e',
       );
     }
 
@@ -175,9 +416,6 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Temporary UI-only OTP flow.
-  // Connect to real backend endpoints when they are implemented.
-
   Future<bool> requestOtp(String identifier) async {
     _model = _model.copyWith(
       isLoading: true,
@@ -185,8 +423,6 @@ class AuthController extends ChangeNotifier {
       clearSuccess: true,
     );
     notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 700));
 
     final normalized = identifier.trim().toLowerCase();
 
@@ -199,47 +435,88 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
-    _model = _model.copyWith(
-      isLoading: false,
-      step: AuthStep.otp,
-      successMessage: 'Demo mode: OTP flow is not connected yet.',
-    );
+    try {
+      final message = await _authApiService.forgotPassword(normalized);
+      _resetEmail = normalized;
+      _model = _model.copyWith(
+        isLoading: false,
+        step: AuthStep.otp,
+        successMessage: message,
+      );
 
-    _startTimer();
+      _startTimer();
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: error.message,
+      );
+    } catch (_) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to send verification code. Please try again.',
+      );
+    }
+
     notifyListeners();
-    return true;
+    return false;
   }
 
   Future<bool> verifyOtp(String otp) async {
     _model = _model.copyWith(isLoading: true, clearError: true);
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 700));
-
-    if (otp.length != 4) {
+    final trimmed = otp.trim();
+    if (trimmed.length < 4) {
       _model = _model.copyWith(
         isLoading: false,
-        errorMessage: 'Please enter a valid 4-digit code.',
+        errorMessage: 'Please enter a valid 4-digit verification code.',
       );
       notifyListeners();
       return false;
     }
 
-    _model = _model.copyWith(
-      isLoading: false,
-      step: AuthStep.newPassword,
-      successMessage: 'Code verified successfully.',
-    );
+    final email = _resetEmail;
+    if (email == null || email.isEmpty) {
+      _model = _model.copyWith(
+        isLoading: false,
+        step: AuthStep.forgot,
+        errorMessage: 'Please enter your email address first.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      await _authApiService.verifyOtp(email: email, otp: trimmed);
+      _verifiedOtp = trimmed;
+      _model = _model.copyWith(
+        isLoading: false,
+        step: AuthStep.newPassword,
+        successMessage: 'Code verified successfully.',
+      );
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: error.message,
+      );
+    } catch (_) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to verify code. Please try again.',
+      );
+    }
 
     notifyListeners();
-    return true;
+    return false;
   }
 
   Future<bool> resetPassword(String newPassword, String confirmPassword) async {
     _model = _model.copyWith(isLoading: true, clearError: true);
     notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 700));
 
     if (newPassword.length < 6) {
       _model = _model.copyWith(
@@ -259,14 +536,51 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
-    _model = _model.copyWith(
-      isLoading: false,
-      step: AuthStep.signIn,
-      successMessage: 'Password reset successfully! Please sign in.',
-    );
+    final email = _resetEmail;
+    final otp = _verifiedOtp;
+
+    if (email == null || otp == null) {
+      _model = _model.copyWith(
+        isLoading: false,
+        step: AuthStep.forgot,
+        errorMessage: 'Session expired. Please request a new code.',
+      );
+      notifyListeners();
+      return false;
+    }
+
+    try {
+      final message = await _authApiService.resetPassword(
+        email: email,
+        otp: otp,
+        newPassword: newPassword,
+      );
+
+      _resetEmail = null;
+      _verifiedOtp = null;
+
+      _model = _model.copyWith(
+        isLoading: false,
+        step: AuthStep.signIn,
+        successMessage: message,
+      );
+
+      notifyListeners();
+      return true;
+    } on ApiException catch (error) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: error.message,
+      );
+    } catch (_) {
+      _model = _model.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to reset password. Please try again.',
+      );
+    }
 
     notifyListeners();
-    return true;
+    return false;
   }
 
   Timer? _timer;
@@ -290,13 +604,8 @@ class AuthController extends ChangeNotifier {
   }
 
   void resendOtp() {
-    if (!canResend) return;
-
-    _startTimer();
-
-    _model = _model.copyWith(successMessage: 'New OTP sent.');
-
-    notifyListeners();
+    if (!canResend || _resetEmail == null) return;
+    requestOtp(_resetEmail!);
   }
 
   @override

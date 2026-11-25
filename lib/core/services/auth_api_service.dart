@@ -8,7 +8,8 @@ class AuthApiService {
   final ApiClient _apiClient;
   final AuthTokenManager _tokenManager;
 
-  /// Register a new user account and immediately authenticate.
+  /// Register a new user account.
+  /// Sends an email verification OTP code.
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
@@ -29,8 +30,186 @@ class AuthApiService {
       );
     }
 
-    // Immediately log in to obtain session tokens
-    return await login(email: email, password: password);
+    final rawData = response['data'];
+    if (rawData is Map) {
+      final data = Map<String, dynamic>.from(rawData);
+
+      // If tokens returned directly
+      final accessToken = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      if (accessToken != null &&
+          accessToken.isNotEmpty &&
+          refreshToken != null &&
+          refreshToken.isNotEmpty) {
+        await _tokenManager.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+
+      return data;
+    }
+
+    return {
+      'requiresVerification': true,
+      'email': email.trim().toLowerCase(),
+      'message': response['message']?.toString() ?? 'Verification code sent.',
+    };
+  }
+
+  /// Verify registration email OTP to activate account and acquire session tokens.
+  Future<Map<String, dynamic>> verifyEmailOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.verifyEmailOtp,
+      body: {'email': email.trim().toLowerCase(), 'otp': otp.trim()},
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message:
+            response['message']?.toString() ??
+            'Invalid or expired verification code.',
+      );
+    }
+
+    final data = Map<String, dynamic>.from(response['data'] as Map);
+    final accessToken = data['accessToken'] as String?;
+    final refreshToken = data['refreshToken'] as String?;
+
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      throw ApiException(
+        message: 'Authentication tokens were not received from the server.',
+      );
+    }
+
+    await _tokenManager.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+
+    return data;
+  }
+
+  /// Resend registration verification OTP code.
+  Future<String> resendVerificationOtp(String email) async {
+    final response = await _apiClient.post(
+      ApiConstants.resendVerificationOtp,
+      body: {'email': email.trim().toLowerCase()},
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message:
+            response['message']?.toString() ??
+            'Failed to resend verification code.',
+      );
+    }
+
+    return response['message']?.toString() ??
+        'A new verification code has been sent to your email.';
+  }
+
+  /// Check Google OAuth configuration status on the backend.
+  Future<Map<String, dynamic>> getGoogleConfig() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.googleConfig);
+      if (response['success'] == true && response['data'] is Map) {
+        return Map<String, dynamic>.from(response['data'] as Map);
+      }
+    } catch (_) {}
+    return {'configured': false, 'clientId': ''};
+  }
+
+  /// Save Google OAuth Client ID and Secret to backend.
+  Future<Map<String, dynamic>> saveGoogleConfig({
+    required String clientId,
+    required String clientSecret,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.googleConfig,
+      body: {
+        'clientId': clientId.trim(),
+        'clientSecret': clientSecret.trim(),
+      },
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message: response['message']?.toString() ?? 'Failed to save Google configuration',
+      );
+    }
+
+    return Map<String, dynamic>.from(response['data'] as Map);
+  }
+
+  /// Directly save session tokens received from Google OAuth callback.
+  Future<Map<String, dynamic>> saveGoogleSession(Map<String, dynamic> data) async {
+    final accessToken = data['accessToken'] as String?;
+    final refreshToken = data['refreshToken'] as String?;
+
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      throw ApiException(
+        message: 'Authentication tokens were not received from Google OAuth.',
+      );
+    }
+
+    await _tokenManager.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+
+    return data;
+  }
+
+  /// Sign in or register seamlessly with Google.
+  Future<Map<String, dynamic>> googleAuth({
+    String? idToken,
+    String? email,
+    String? name,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.googleAuth,
+      body: {
+        'idToken': ?idToken,
+        'email': ?email?.trim().toLowerCase(),
+        'name': ?name?.trim(),
+      },
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message: response['message']?.toString() ?? 'Google authentication failed',
+      );
+    }
+
+    final data = Map<String, dynamic>.from(response['data'] as Map);
+    final accessToken = data['accessToken'] as String?;
+    final refreshToken = data['refreshToken'] as String?;
+
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      throw ApiException(
+        message: 'Authentication tokens were not received from the server.',
+      );
+    }
+
+    await _tokenManager.saveTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+
+    return data;
   }
 
   /// Login using backend credentials.
@@ -111,6 +290,70 @@ class AuthApiService {
   /// Clear locally stored authentication tokens.
   Future<void> clearLocalSession() {
     return _tokenManager.clearTokens();
+  }
+
+  /// Request a password reset OTP for the given email.
+  Future<String> forgotPassword(String email) async {
+    final response = await _apiClient.post(
+      ApiConstants.forgotPassword,
+      body: {'email': email.trim().toLowerCase()},
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message:
+            response['message']?.toString() ??
+            'Failed to send verification code.',
+      );
+    }
+
+    return response['message']?.toString() ??
+        'Verification code sent successfully.';
+  }
+
+  /// Verify the OTP entered by the user.
+  Future<bool> verifyOtp({required String email, required String otp}) async {
+    final response = await _apiClient.post(
+      ApiConstants.verifyOtp,
+      body: {'email': email.trim().toLowerCase(), 'otp': otp.trim()},
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message:
+            response['message']?.toString() ??
+            'Invalid or expired verification code.',
+      );
+    }
+
+    return true;
+  }
+
+  /// Reset the password using the verified OTP.
+  Future<String> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.resetPassword,
+      body: {
+        'email': email.trim().toLowerCase(),
+        'otp': otp.trim(),
+        'password': newPassword,
+      },
+    );
+
+    if (response['success'] != true) {
+      throw ApiException(
+        message:
+            response['message']?.toString() ??
+            'Failed to reset password. Please try again.',
+      );
+    }
+
+    return response['message']?.toString() ??
+        'Password reset successfully! Please sign in.';
   }
 
   /// Logout from the backend and clear the local session.

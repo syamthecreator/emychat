@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:remixicon/remixicon.dart';
 import '../../../../app/routes/app_router.dart';
@@ -7,6 +8,7 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/constants/asset_constants.dart';
 import '../../../../core/widgets/gradient_button.dart';
 import '../../controllers/auth_controller.dart';
+import '../widgets/auth_widget.dart';
 import '../../../pricing/controller/pricing_controller.dart';
 import '../../../pricing/data/models/pricing_plan_model.dart';
 
@@ -25,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -46,6 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
 
@@ -96,6 +100,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (success) {
       // Continue directly to Workspace creation flow
       Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
+    } else if (auth.isVerifyingEmail) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.surfaceVariant,
+          content: Text(
+            auth.successMessage ?? 'Verification code sent to your email.',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+        ),
+      );
     } else if (auth.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -103,6 +117,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
           content: Text(auth.errorMessage!),
         ),
       );
+    }
+  }
+
+  Future<void> _handleVerifyEmailOtp() async {
+    final auth = context.read<AuthController>();
+    final success = await auth.verifyEmailOtp(_otpCtrl.text.trim());
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
+    } else if (auth.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(auth.errorMessage!),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleResendEmailOtp() async {
+    final auth = context.read<AuthController>();
+    final ok = await auth.resendEmailVerificationOtp();
+
+    if (!mounted) return;
+
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.surfaceVariant,
+          content: Text(
+            auth.successMessage ?? 'New verification code sent to your email.',
+            style: const TextStyle(color: AppColors.textPrimary),
+          ),
+        ),
+      );
+    } else if (auth.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(auth.errorMessage!),
+        ),
+      );
+    }
+  }
+
+  Future<void> _continueWithGoogle() async {
+    final auth = context.read<AuthController>();
+    final ok = await auth.continueWithGoogle();
+
+    if (!mounted) return;
+
+    if (ok) {
+      Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
+    } else if (auth.errorMessage != null) {
+      if (auth.errorMessage!.contains('Google OAuth Setup Required')) {
+        showGoogleSetupDialog(
+          context,
+          onConfigured: () async {
+            final success = await auth.continueWithGoogle();
+            if (mounted && success) {
+              Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
+            }
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text(auth.errorMessage!),
+          ),
+        );
+      }
     }
   }
 
@@ -226,23 +314,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Create your account',
-                          style: AppTextStyles.t(24, w: FontWeight.w700, c: AppColors.textPrimary),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Start setting up your automated messaging workspace in seconds.',
-                          style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 28),
+                  child: auth.isVerifyingEmail
+                      ? _buildEmailVerificationView(auth)
+                      : Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create your account',
+                                style: AppTextStyles.t(24, w: FontWeight.w700, c: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Start setting up your automated messaging workspace in seconds.',
+                                style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: 22),
+                              GoogleAuthButton(
+                                onPressed: _continueWithGoogle,
+                                loading: auth.isLoading,
+                              ),
+                              const SizedBox(height: 18),
+                              const AuthDivider(label: 'or continue with email'),
+                              const SizedBox(height: 18),
 
-                        // Full Name
+                              // Full Name
                         Text(
                           'FULL NAME',
                           style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
@@ -483,6 +580,154 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildEmailVerificationView(AuthController auth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Icon(
+                RemixIcons.mail_check_line,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Verify your email',
+                    style: AppTextStyles.t(22, w: FontWeight.w700, c: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Enter the 4-digit code sent to your inbox.',
+                    style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(RemixIcons.information_line, size: 18, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Code sent to ${auth.pendingVerificationEmail}',
+                  style: AppTextStyles.t(13, w: FontWeight.w500, c: AppColors.textPrimary),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          '4-DIGIT VERIFICATION CODE',
+          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _otpCtrl,
+          maxLength: 4,
+          textAlign: TextAlign.center,
+          cursorColor: AppColors.primary,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 10,
+          ),
+          decoration: InputDecoration(
+            counterText: '',
+            hintText: '••••',
+            hintStyle: const TextStyle(letterSpacing: 10, color: AppColors.textMuted),
+            filled: true,
+            fillColor: AppColors.surfaceVariant,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+          ),
+          onFieldSubmitted: (_) => _handleVerifyEmailOtp(),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              auth.canResend ? "Didn't receive code?" : 'Resend in ${auth.timeText}',
+              style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textMuted),
+            ),
+            if (auth.canResend)
+              InkWell(
+                onTap: _handleResendEmailOtp,
+                child: Text(
+                  'Resend Code',
+                  style: AppTextStyles.t(13, w: FontWeight.w600, c: AppColors.primary),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: auth.isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                  ),
+                )
+              : GradientButton(
+                  label: 'Verify & Activate Account',
+                  icon: RemixIcons.check_line,
+                  onTap: _handleVerifyEmailOtp,
+                ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              auth.cancelEmailVerification();
+              _otpCtrl.clear();
+            },
+            icon: const Icon(RemixIcons.arrow_left_line, size: 14),
+            label: const Text('Use a different email'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              textStyle: AppTextStyles.t(12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
