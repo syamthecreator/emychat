@@ -51,7 +51,17 @@ class GoogleAuthService {
     _oauthCompleter?.complete(null);
     _oauthCompleter = Completer<Map<String, dynamic>?>();
 
-    final googleLoginUrl = '${ApiConstants.baseUrl}${ApiConstants.googleLogin}';
+    const clientId = '597431703973-ume8md8s5d5jgbp5v4ptc13gqj0hrlot.apps.googleusercontent.com';
+    final callbackUrl = '${ApiConstants.baseUrl}/auth/google/callback';
+
+    final googleLoginUrl =
+        'https://accounts.google.com/o/oauth2/v2/auth?'
+        'client_id=$clientId&'
+        'redirect_uri=${Uri.encodeComponent(callbackUrl)}&'
+        'response_type=code&'
+        'scope=openid%20email%20profile&'
+        'access_type=offline&'
+        'prompt=select_account';
 
     // Start listening for popup message
     _messageSubscription?.cancel();
