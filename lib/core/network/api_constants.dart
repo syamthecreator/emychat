@@ -24,9 +24,6 @@ abstract final class ApiConstants {
   static const String register = '$auth/register';
   static const String verifyEmailOtp = '$auth/verify-email-otp';
   static const String resendVerificationOtp = '$auth/resend-verification-otp';
-  static const String googleAuth = '$auth/google';
-  static const String googleConfig = '$auth/google/config';
-  static const String googleLogin = '$auth/google/login';
   static const String login = '$auth/login';
   static const String refresh = '$auth/refresh';
   static const String logout = '$auth/logout';

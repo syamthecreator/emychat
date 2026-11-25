@@ -93,35 +93,6 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _continueWithGoogle() async {
-    final auth = context.read<AuthController>();
-    final ok = await auth.continueWithGoogle();
-
-    if (!mounted) return;
-    if (ok) {
-      final wsController = context.read<WorkspaceController>();
-      await wsController.loadWorkspaces();
-      if (!mounted) return;
-
-      if (wsController.hasWorkspace) {
-        Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
-      } else {
-        Navigator.of(context)
-            .pushReplacementNamed(AppRouter.workspaceOnboarding);
-      }
-    } else if (auth.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.error.withValues(alpha: 0.9),
-          content: Text(
-            auth.errorMessage!,
-            style: const TextStyle(color: AppColors.onError),
-          ),
-        ),
-      );
-    }
-  }
-
   Future<void> _requestOtp() async {
     final auth = context.read<AuthController>();
     final ok = await auth.requestOtp(_usernameCtrl.text.trim());
@@ -298,14 +269,7 @@ class _AuthScreenState extends State<AuthScreen> {
           title: 'Welcome Back',
           subtitle: 'Sign in to access your EmyChat workspace.',
         ),
-        const SizedBox(height: 22),
-        GoogleAuthButton(
-          onPressed: _continueWithGoogle,
-          loading: auth.isLoading,
-        ),
-        const SizedBox(height: 18),
-        const AuthDivider(label: 'or sign in with email'),
-        const SizedBox(height: 18),
+        const SizedBox(height: 24),
         const AuthFieldLabel('Work Email / Mobile Number'),
         AuthTextField(
           controller: _usernameCtrl,

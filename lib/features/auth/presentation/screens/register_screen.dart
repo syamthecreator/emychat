@@ -201,24 +201,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<void> _continueWithGoogle() async {
-    final auth = context.read<AuthController>();
-    final ok = await auth.continueWithGoogle();
-
-    if (!mounted) return;
-
-    if (ok) {
-      Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
-    } else if (auth.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.error,
-          content: Text(auth.errorMessage!),
-        ),
-      );
-    }
-  }
-
   // ───────────────────────── UI HELPERS ─────────────────────────
 
   Widget _eyeButton(bool hidden, VoidCallback onTap) => IconButton(
@@ -438,14 +420,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           subtitle: 'Set up your messaging workspace in seconds.',
         ),
         if (!isWide) ...[const SizedBox(height: 16), _planCard(plan, pricing)],
-        const SizedBox(height: 20),
-        GoogleAuthButton(
-          onPressed: _continueWithGoogle,
-          loading: auth.isLoading,
-        ),
-        const SizedBox(height: 16),
-        const AuthDivider(label: 'or continue with email'),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
 
         // Full name
         const AuthFieldLabel('Full Name'),

@@ -4,7 +4,6 @@ import 'package:emychat/core/network/api_client.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:emychat/core/services/auth_api_service.dart';
-import 'package:emychat/core/services/google_auth_service.dart';
 
 import '../presentation/models/auth_model.dart';
 
@@ -17,14 +16,12 @@ class AuthController extends ChangeNotifier {
   String? _resetEmail;
   String? _verifiedOtp;
   String? _pendingVerificationEmail;
-  bool _isGoogleConfigured = false;
 
   AuthModel get model => _model;
   AuthStep get step => _model.step;
   bool get isLoading => _model.isLoading;
   int get secondsLeft => _model.secondsLeft;
   bool get isAuthenticated => _model.isAuthenticated;
-  bool get isGoogleConfigured => _isGoogleConfigured;
   String? get userEmail => _model.userEmail;
   String? get userRole => _model.userRole;
   String? get errorMessage => _model.errorMessage;
@@ -82,50 +79,7 @@ class AuthController extends ChangeNotifier {
       debugPrintStack(stackTrace: stackTrace);
     }
 
-    unawaited(checkGoogleConfig());
-
     notifyListeners();
-  }
-
-  Future<void> checkGoogleConfig() async {
-    try {
-      final config = await _authApiService.getGoogleConfig();
-      _isGoogleConfigured = config['configured'] == true;
-      notifyListeners();
-    } catch (_) {}
-  }
-
-  Future<bool> saveGoogleConfig({
-    required String clientId,
-    required String clientSecret,
-  }) async {
-    _model = _model.copyWith(isLoading: true, clearError: true);
-    notifyListeners();
-
-    try {
-      await _authApiService.saveGoogleConfig(
-        clientId: clientId,
-        clientSecret: clientSecret,
-      );
-      _isGoogleConfigured = true;
-      _model = _model.copyWith(
-        isLoading: false,
-        successMessage: 'Google OAuth configuration saved successfully!',
-      );
-      notifyListeners();
-      return true;
-    } on ApiException catch (e) {
-      _model = _model.copyWith(isLoading: false, errorMessage: e.message);
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _model = _model.copyWith(
-        isLoading: false,
-        errorMessage: 'Failed to save Google configuration: $e',
-      );
-      notifyListeners();
-      return false;
-    }
   }
 
   Future<bool> signUp({
@@ -278,77 +232,6 @@ class AuthController extends ChangeNotifier {
     _pendingVerificationEmail = null;
     _model = _model.copyWith(clearError: true, clearSuccess: true);
     notifyListeners();
-  }
-
-  Future<bool> continueWithGoogle({
-    String? idToken,
-    String? email,
-    String? name,
-  }) async {
-    _model = _model.copyWith(
-      isLoading: true,
-      clearError: true,
-      clearSuccess: true,
-    );
-    notifyListeners();
-
-    try {
-      // If explicit credentials were provided
-      if (idToken != null || email != null) {
-        final result = await _authApiService.googleAuth(
-          idToken: idToken,
-          email: email,
-          name: name,
-        );
-
-        final user = result['user'] as Map<String, dynamic>;
-
-        _model = _model.copyWith(
-          isLoading: false,
-          isAuthenticated: true,
-          userEmail: user['email'] as String?,
-          userRole: 'Creator',
-          successMessage: 'Welcome to EmyChat!',
-        );
-
-        notifyListeners();
-        return true;
-      }
-
-      // Otherwise launch real Google OAuth flow directly
-      final result = await GoogleAuthService.instance.authenticateWithGoogle(
-        authApiService: _authApiService,
-      );
-
-      if (result == null) {
-        _model = _model.copyWith(isLoading: false);
-        notifyListeners();
-        return false;
-      }
-
-      final user = result['user'] as Map<String, dynamic>;
-
-      _model = _model.copyWith(
-        isLoading: false,
-        isAuthenticated: true,
-        userEmail: user['email'] as String?,
-        userRole: 'Creator',
-        successMessage: 'Welcome to EmyChat!',
-      );
-
-      notifyListeners();
-      return true;
-    } on ApiException catch (error) {
-      _model = _model.copyWith(isLoading: false, errorMessage: error.message);
-    } catch (e) {
-      _model = _model.copyWith(
-        isLoading: false,
-        errorMessage: 'Google Sign-In failed: $e',
-      );
-    }
-
-    notifyListeners();
-    return false;
   }
 
   Future<bool> signIn(String identifier, String password) async {
