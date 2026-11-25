@@ -315,25 +315,13 @@ class AuthController extends ChangeNotifier {
         return true;
       }
 
-      // Otherwise launch real Google OAuth flow
+      // Otherwise launch real Google OAuth flow directly
       final result = await GoogleAuthService.instance.authenticateWithGoogle(
         authApiService: _authApiService,
-        isPreConfigured: _isGoogleConfigured ? true : null,
       );
 
       if (result == null) {
         _model = _model.copyWith(isLoading: false);
-        notifyListeners();
-        return false;
-      }
-
-      if (result['needsConfig'] == true) {
-        _isGoogleConfigured = false;
-        _model = _model.copyWith(
-          isLoading: false,
-          errorMessage:
-              'Google OAuth Setup Required: Please configure Google Client ID & Secret',
-        );
         notifyListeners();
         return false;
       }

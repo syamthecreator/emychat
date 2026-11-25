@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:remixicon/remixicon.dart';
+
 import '../../../../app/routes/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/constants/asset_constants.dart';
-import '../../../../core/widgets/gradient_button.dart';
 import '../../controllers/auth_controller.dart';
 import '../widgets/auth_widget.dart';
 import '../../../pricing/controller/pricing_controller.dart';
@@ -22,7 +22,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -33,9 +32,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = true;
 
+  String? _nameError;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmError;
+
   @override
   void initState() {
     super.initState();
+    // Keeps the password strength meter live.
+    _passwordCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.planSlug != null) {
         context.read<PricingController>().selectPlanBySlug(widget.planSlug!);
@@ -52,6 +60,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _otpCtrl.dispose();
     super.dispose();
   }
+
+  // ───────────────────────── LOGIC ─────────────────────────
 
   double _calculatePasswordStrength(String password) {
     if (password.isEmpty) return 0.0;
@@ -76,8 +86,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return AppColors.success;
   }
 
+  /// Same rules as before, shown inline under each field.
+  bool _validate() {
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final pass = _passwordCtrl.text;
+
+    setState(() {
+      _nameError = name.length < 2
+          ? 'Please enter your full name (at least 2 characters)'
+          : null;
+      _emailError = (!email.contains('@') || !email.contains('.'))
+          ? 'Please enter a valid work email address'
+          : null;
+      _passwordError = pass.length < 8
+          ? 'Password must be at least 8 characters'
+          : null;
+      _confirmError = _confirmPasswordCtrl.text != pass
+          ? 'Passwords do not match'
+          : null;
+    });
+
+    return _nameError == null &&
+        _emailError == null &&
+        _passwordError == null &&
+        _confirmError == null;
+  }
+
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_validate()) return;
     if (!_acceptTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -173,561 +210,569 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (ok) {
       Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
     } else if (auth.errorMessage != null) {
-      if (auth.errorMessage!.contains('Google OAuth Setup Required')) {
-        showGoogleSetupDialog(
-          context,
-          onConfigured: () async {
-            final success = await auth.continueWithGoogle();
-            if (mounted && success) {
-              Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
-            }
-          },
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.error,
-            content: Text(auth.errorMessage!),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(auth.errorMessage!),
+        ),
+      );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-    final pricing = context.watch<PricingController>();
-    final selectedPlan = pricing.selectedPlan ?? PricingPlanModel.defaultPlans[1];
-    final auth = context.watch<AuthController>();
+  // ───────────────────────── UI HELPERS ─────────────────────────
 
-    final passwordStrength = _calculatePasswordStrength(_passwordCtrl.text);
+  Widget _eyeButton(bool hidden, VoidCallback onTap) => IconButton(
+    onPressed: onTap,
+    splashRadius: 18,
+    icon: Icon(
+      hidden ? RemixIcons.eye_line : RemixIcons.eye_off_line,
+      size: 20,
+      color: AppColors.textSecondary,
+    ),
+  );
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 36,
-            vertical: 40,
+  Widget _fieldError(String? message) {
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 5, left: 2),
+      child: Text(
+        message,
+        style: const TextStyle(fontSize: 11.5, color: AppColors.error),
+      ),
+    );
+  }
+
+  Widget _strengthBar(double strength) {
+    final color = _passwordStrengthColor(strength);
+    final filled = strength <= 0 ? 0 : (strength * 4).ceil().clamp(1, 4);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: List.generate(4, (i) {
+                return Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    height: 3.5,
+                    margin: EdgeInsets.only(right: i == 3 ? 0 : 5),
+                    decoration: BoxDecoration(
+                      color: i < filled ? color : AppColors.border,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                );
+              }),
+            ),
           ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+          const SizedBox(width: 12),
+          Text(
+            _passwordStrengthLabel(strength),
+            style: AppTextStyles.t(11, w: FontWeight.w600, c: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _planCard(PricingPlanModel plan, PricingController pricing) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            RemixIcons.sparkling_line,
+            color: AppColors.accentPrimary,
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Brand Logo
-                InkWell(
-                  onTap: () => Navigator.of(context).pushReplacementNamed(AppRouter.landing),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: AppColors.surface,
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        padding: const EdgeInsets.all(6),
-                        child: Image.asset(
-                          AssetConstants.aLogo,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                            RemixIcons.apps_2_fill,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'emy',
-                              style: AppTextStyles.t(22, w: FontWeight.w700, c: AppColors.textPrimary),
-                            ),
-                            TextSpan(
-                              text: 'chat',
-                              style: AppTextStyles.t(22, w: FontWeight.w700, c: AppColors.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Selected Plan: ${plan.name}',
+                  style: AppTextStyles.t(
+                    13,
+                    w: FontWeight.w700,
+                    c: AppColors.textPrimary,
                   ),
                 ),
-
-                const SizedBox(height: 28),
-
-                // Selected Plan Preview Banner
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
+                const SizedBox(height: 2),
+                Text(
+                  pricing.isYearly
+                      ? '\$${plan.yearlyMonthlyEquivalent}/mo billed annually'
+                      : '\$${plan.monthlyPrice}/mo billed monthly',
+                  style: AppTextStyles.t(
+                    11,
+                    w: FontWeight.w400,
+                    c: AppColors.textSecondary,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(RemixIcons.sparkling_line, color: AppColors.accentPrimary, size: 18),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Selected Plan: ${selectedPlan.name}',
-                              style: AppTextStyles.t(13, w: FontWeight.w700, c: AppColors.textPrimary),
-                            ),
-                            Text(
-                              pricing.isYearly
-                                  ? '\$${selectedPlan.yearlyMonthlyEquivalent}/mo billed annually'
-                                  : '\$${selectedPlan.monthlyPrice}/mo billed monthly',
-                              style: AppTextStyles.t(11, w: FontWeight.w400, c: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pushNamed(AppRouter.pricing),
-                        child: Text(
-                          'Change',
-                          style: AppTextStyles.t(12, w: FontWeight.w600, c: AppColors.primary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Card Container
-                Container(
-                  padding: EdgeInsets.all(isMobile ? 20 : 32),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: auth.isVerifyingEmail
-                      ? _buildEmailVerificationView(auth)
-                      : Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Create your account',
-                                style: AppTextStyles.t(24, w: FontWeight.w700, c: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Start setting up your automated messaging workspace in seconds.',
-                                style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textSecondary),
-                              ),
-                              const SizedBox(height: 22),
-                              GoogleAuthButton(
-                                onPressed: _continueWithGoogle,
-                                loading: auth.isLoading,
-                              ),
-                              const SizedBox(height: 18),
-                              const AuthDivider(label: 'or continue with email'),
-                              const SizedBox(height: 18),
-
-                              // Full Name
-                        Text(
-                          'FULL NAME',
-                          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _nameCtrl,
-                          cursorColor: AppColors.primary,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Jane Doe',
-                            prefixIcon: const Icon(RemixIcons.user_3_line, size: 18, color: AppColors.textMuted),
-                            filled: true,
-                            fillColor: AppColors.surfaceVariant,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().length < 2) {
-                              return 'Please enter your full name (at least 2 characters)';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // Email Address
-                        Text(
-                          'WORK EMAIL',
-                          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          cursorColor: AppColors.primary,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'jane@company.com',
-                            prefixIcon: const Icon(RemixIcons.mail_line, size: 18, color: AppColors.textMuted),
-                            filled: true,
-                            fillColor: AppColors.surfaceVariant,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                          ),
-                          validator: (val) {
-                            if (val == null || !val.contains('@') || !val.contains('.')) {
-                              return 'Please enter a valid work email address';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // Password
-                        Text(
-                          'PASSWORD',
-                          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _passwordCtrl,
-                          obscureText: _obscurePassword,
-                          cursorColor: AppColors.primary,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            hintText: 'At least 8 characters',
-                            prefixIcon: const Icon(RemixIcons.lock_2_line, size: 18, color: AppColors.textMuted),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? RemixIcons.eye_off_line : RemixIcons.eye_line,
-                                size: 18,
-                                color: AppColors.textMuted,
-                              ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.surfaceVariant,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.length < 8) {
-                              return 'Password must be at least 8 characters';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        // Password Strength Indicator
-                        if (_passwordCtrl.text.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: passwordStrength,
-                                    backgroundColor: AppColors.border,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      _passwordStrengthColor(passwordStrength),
-                                    ),
-                                    minHeight: 4,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _passwordStrengthLabel(passwordStrength),
-                                style: AppTextStyles.t(
-                                  11,
-                                  w: FontWeight.w600,
-                                  c: _passwordStrengthColor(passwordStrength),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
-                        const SizedBox(height: 18),
-
-                        // Confirm Password
-                        Text(
-                          'CONFIRM PASSWORD',
-                          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _confirmPasswordCtrl,
-                          obscureText: _obscureConfirmPassword,
-                          cursorColor: AppColors.primary,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Re-enter your password',
-                            prefixIcon: const Icon(RemixIcons.lock_password_line, size: 18, color: AppColors.textMuted),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword ? RemixIcons.eye_off_line : RemixIcons.eye_line,
-                                size: 18,
-                                color: AppColors.textMuted,
-                              ),
-                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.surfaceVariant,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-                          ),
-                          validator: (val) {
-                            if (val != _passwordCtrl.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Terms Checkbox
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Checkbox(
-                              value: _acceptTerms,
-                              onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-                              activeColor: AppColors.primary,
-                              checkColor: AppColors.onPrimary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                              side: const BorderSide(color: AppColors.border),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'I agree to the Terms of Service and Privacy Policy',
-                                style: AppTextStyles.t(12, w: FontWeight.w400, c: AppColors.textSecondary),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Submit Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: auth.isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                                  ),
-                                )
-                              : GradientButton(
-                                  label: 'Create Account & Continue',
-                                  icon: RemixIcons.arrow_right_line,
-                                  onTap: _handleRegister,
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Already have an account link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Already have an account?',
-                      style: AppTextStyles.t(14, w: FontWeight.w400, c: AppColors.textSecondary),
-                    ),
-                    const SizedBox(width: 6),
-                    InkWell(
-                      onTap: () => Navigator.of(context).pushNamed(AppRouter.login),
-                      child: Text(
-                        'Log in',
-                        style: AppTextStyles.t(14, w: FontWeight.w700, c: AppColors.primary),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
+          ),
+          AuthTextLink(
+            label: 'Change',
+            onTap: () => Navigator.of(context).pushNamed(AppRouter.pricing),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── BUILD ─────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final pricing = context.watch<PricingController>();
+    final selectedPlan =
+        pricing.selectedPlan ?? PricingPlanModel.defaultPlans[1];
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: AuthBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 820;
+              return Center(
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context)
+                      .copyWith(scrollbars: false),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: isWide
+                          ? IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: _RegisterLogoPanel(
+                                      footer: _planCard(selectedPlan, pricing),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _formPanel(
+                                      isWide,
+                                      selectedPlan,
+                                      pricing,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  height: 170,
+                                  child: _RegisterLogoPanel(compact: true),
+                                ),
+                                _formPanel(isWide, selectedPlan, pricing),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEmailVerificationView(AuthController auth) {
+  Widget _formPanel(
+    bool isWide,
+    PricingPlanModel plan,
+    PricingController pricing,
+  ) {
+    final auth = context.watch<AuthController>();
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 40 : 24, vertical: 32),
+      child: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOut,
+          child: KeyedSubtree(
+            key: ValueKey(auth.isVerifyingEmail),
+            child: auth.isVerifyingEmail
+                ? _buildEmailVerificationView(auth)
+                : _buildRegisterContent(auth, isWide, plan, pricing),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterContent(
+    AuthController auth,
+    bool isWide,
+    PricingPlanModel plan,
+    PricingController pricing,
+  ) {
+    final passwordStrength = _calculatePasswordStrength(_passwordCtrl.text);
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                ),
-              ),
-              child: const Icon(
-                RemixIcons.mail_check_line,
-                color: AppColors.primary,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Verify your email',
-                    style: AppTextStyles.t(22, w: FontWeight.w700, c: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Enter the 4-digit code sent to your inbox.',
-                    style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        const AuthHeader(
+          icon: RemixIcons.user_add_line,
+          title: 'Create your account',
+          subtitle: 'Set up your messaging workspace in seconds.',
         ),
+        if (!isWide) ...[const SizedBox(height: 16), _planCard(plan, pricing)],
         const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
+        GoogleAuthButton(
+          onPressed: _continueWithGoogle,
+          loading: auth.isLoading,
+        ),
+        const SizedBox(height: 16),
+        const AuthDivider(label: 'or continue with email'),
+        const SizedBox(height: 16),
+
+        // Full name
+        const AuthFieldLabel('Full Name'),
+        AuthTextField(
+          controller: _nameCtrl,
+          prefixIcon: RemixIcons.user_3_line,
+          hint: 'Jane Doe',
+          autofillHints: const [AutofillHints.name],
+          textInputAction: TextInputAction.next,
+        ),
+        _fieldError(_nameError),
+        const SizedBox(height: 14),
+
+        // Work email
+        const AuthFieldLabel('Work Email'),
+        AuthTextField(
+          controller: _emailCtrl,
+          prefixIcon: RemixIcons.mail_line,
+          hint: 'jane@company.com',
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          textInputAction: TextInputAction.next,
+        ),
+        _fieldError(_emailError),
+        const SizedBox(height: 14),
+
+        // Password
+        const AuthFieldLabel('Password'),
+        AuthTextField(
+          controller: _passwordCtrl,
+          prefixIcon: RemixIcons.lock_line,
+          hint: 'At least 8 characters',
+          obscureText: _obscurePassword,
+          autofillHints: const [AutofillHints.newPassword],
+          textInputAction: TextInputAction.next,
+          suffix: _eyeButton(
+            _obscurePassword,
+            () => setState(() => _obscurePassword = !_obscurePassword),
           ),
+        ),
+        if (_passwordCtrl.text.isNotEmpty) _strengthBar(passwordStrength),
+        _fieldError(_passwordError),
+        const SizedBox(height: 14),
+
+        // Confirm password
+        const AuthFieldLabel('Confirm Password'),
+        AuthTextField(
+          controller: _confirmPasswordCtrl,
+          prefixIcon: RemixIcons.lock_password_line,
+          hint: 'Re-enter your password',
+          obscureText: _obscureConfirmPassword,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _handleRegister(),
+          suffix: _eyeButton(
+            _obscureConfirmPassword,
+            () => setState(
+              () => _obscureConfirmPassword = !_obscureConfirmPassword,
+            ),
+          ),
+        ),
+        _fieldError(_confirmError),
+        const SizedBox(height: 16),
+
+        // Terms
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => setState(() => _acceptTerms = !_acceptTerms),
           child: Row(
             children: [
-              const Icon(RemixIcons.information_line, size: 18, color: AppColors.primary),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _acceptTerms,
+                  onChanged: (v) => setState(() => _acceptTerms = v ?? false),
+                  activeColor: AppColors.primary,
+                  checkColor: AppColors.onPrimary,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  side: const BorderSide(color: AppColors.border, width: 1.5),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  'Code sent to ${auth.pendingVerificationEmail}',
-                  style: AppTextStyles.t(13, w: FontWeight.w500, c: AppColors.textPrimary),
+                child: RichText(
+                  text: TextSpan(
+                    style: AppTextStyles.t(
+                      12,
+                      w: FontWeight.w400,
+                      c: AppColors.textSecondary,
+                    ),
+                    children: [
+                      const TextSpan(text: 'I agree to the '),
+                      TextSpan(
+                        text: 'Terms of Service',
+                        style: AppTextStyles.t(
+                          12,
+                          w: FontWeight.w600,
+                          c: AppColors.accentPrimary,
+                        ),
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: AppTextStyles.t(
+                          12,
+                          w: FontWeight.w600,
+                          c: AppColors.accentPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        Text(
-          '4-DIGIT VERIFICATION CODE',
-          style: AppTextStyles.t(11, w: FontWeight.w700, c: AppColors.textSecondary, ls: 0.8),
+
+        const SizedBox(height: 18),
+
+        AuthButton(
+          label: 'Create Account & Continue',
+          icon: RemixIcons.arrow_right_line,
+          iconAfter: true,
+          gradient: AppColors.darkGradient,
+          loading: auth.isLoading,
+          loadingLabel: 'Creating account...',
+          onPressed: _handleRegister,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
+
+        const SizedBox(height: 18),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Already have an account?',
+              style: AppTextStyles.t(
+                13,
+                w: FontWeight.w400,
+                c: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            InkWell(
+              onTap: () => Navigator.of(context).pushNamed(AppRouter.login),
+              child: Text(
+                'Log in',
+                style: AppTextStyles.t(
+                  13,
+                  w: FontWeight.w700,
+                  c: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailVerificationView(AuthController auth) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AuthHeader(
+          icon: RemixIcons.mail_check_line,
+          title: 'Verify your email',
+          subtitle: 'Enter the 4-digit code sent to your inbox.',
+        ),
+        const SizedBox(height: 22),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                RemixIcons.information_line,
+                size: 18,
+                color: AppColors.accentPrimary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Code sent to ${auth.pendingVerificationEmail}',
+                  style: AppTextStyles.t(
+                    13,
+                    w: FontWeight.w500,
+                    c: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+        const AuthFieldLabel('4-Digit Code'),
+        AuthTextField(
           controller: _otpCtrl,
+          prefixIcon: RemixIcons.shield_line,
+          hint: '••••',
           maxLength: 4,
-          textAlign: TextAlign.center,
-          cursorColor: AppColors.primary,
+          letterSpacing: 8,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 10,
-          ),
-          decoration: InputDecoration(
-            counterText: '',
-            hintText: '••••',
-            hintStyle: const TextStyle(letterSpacing: 10, color: AppColors.textMuted),
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-          ),
-          onFieldSubmitted: (_) => _handleVerifyEmailOtp(),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _handleVerifyEmailOtp(),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              auth.canResend ? "Didn't receive code?" : 'Resend in ${auth.timeText}',
-              style: AppTextStyles.t(13, w: FontWeight.w400, c: AppColors.textMuted),
+              auth.canResend
+                  ? "Didn't receive code?"
+                  : 'Resend in ${auth.timeText}',
+              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
             if (auth.canResend)
-              InkWell(
-                onTap: _handleResendEmailOtp,
-                child: Text(
-                  'Resend Code',
-                  style: AppTextStyles.t(13, w: FontWeight.w600, c: AppColors.primary),
-                ),
-              ),
+              AuthTextLink(label: 'Resend Code', onTap: _handleResendEmailOtp),
           ],
         ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: auth.isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                  ),
-                )
-              : GradientButton(
-                  label: 'Verify & Activate Account',
-                  icon: RemixIcons.check_line,
-                  onTap: _handleVerifyEmailOtp,
-                ),
+        const SizedBox(height: 18),
+        AuthButton(
+          label: 'Verify & Activate Account',
+          icon: RemixIcons.check_line,
+          iconAfter: true,
+          gradient: AppColors.darkGradient,
+          loading: auth.isLoading,
+          loadingLabel: 'Verifying...',
+          onPressed: _handleVerifyEmailOtp,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Center(
-          child: TextButton.icon(
-            onPressed: () {
+          child: AuthTextLink(
+            icon: RemixIcons.arrow_left_line,
+            label: 'Use a different email',
+            onTap: () {
               auth.cancelEmailVerification();
               _otpCtrl.clear();
             },
-            icon: const Icon(RemixIcons.arrow_left_line, size: 14),
-            label: const Text('Use a different email'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              textStyle: AppTextStyles.t(12),
-            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Left brand panel, same look as the login screen's panel.
+class _RegisterLogoPanel extends StatelessWidget {
+  const _RegisterLogoPanel({this.footer, this.compact = false});
+
+  final Widget? footer;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        border: compact
+            ? const Border(bottom: BorderSide(color: AppColors.border))
+            : const Border(right: BorderSide(color: AppColors.border)),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 24 : 36,
+        vertical: compact ? 20 : 40,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              AssetConstants.emychatLogo,
+              fit: BoxFit.contain,
+              width: compact ? 180 : 240,
+              errorBuilder: (context, error, stackTrace) {
+                return RichText(
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                    children: [TextSpan(text: 'emychat')],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 3.5,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.borderSubtle),
+              ),
+              child: const Text(
+                'MESSAGING AUTOMATION',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            if (footer != null) ...[
+              const SizedBox(height: 36),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: footer!,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

@@ -16,26 +16,16 @@ class GoogleAuthService {
   WebPopupHandle? _popupHandle;
 
   /// Initiate real Google OAuth 2.0 flow.
-  /// Opens real Google accounts sign in window (accounts.google.com).
+  /// Opens real Google accounts sign in window (accounts.google.com) directly.
   Future<Map<String, dynamic>?> authenticateWithGoogle({
     required AuthApiService authApiService,
-    bool? isPreConfigured,
   }) async {
-    // 1. Check if backend Google OAuth is configured
-    final bool isConfigured = isPreConfigured ??
-        ((await authApiService.getGoogleConfig())['configured'] == true);
-
-    if (!isConfigured) {
-      // Backend doesn't have GOOGLE_CLIENT_ID configured yet
-      return {'needsConfig': true};
-    }
-
-    // 2. On Web / Desktop: open real Google OAuth popup
+    // 1. On Web / Desktop: open real Google OAuth popup directly
     if (isWebPlatform) {
       return await _startWebOAuthPopup(authApiService);
     }
 
-    // 3. On Mobile (Android / iOS): use GoogleSignIn SDK
+    // 2. On Mobile (Android / iOS): use GoogleSignIn SDK
     try {
       if (GoogleSignIn.instance.supportsAuthenticate()) {
         final account = await GoogleSignIn.instance.authenticate();
@@ -51,7 +41,7 @@ class GoogleAuthService {
       debugPrint('Native Google Sign-In error: $e');
     }
 
-    // Fallback to web popup/browser redirect
+    // Fallback to web popup
     return await _startWebOAuthPopup(authApiService);
   }
 

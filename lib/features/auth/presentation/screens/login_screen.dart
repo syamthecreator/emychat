@@ -24,9 +24,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   // Pre-filled with requested default credentials for immediate one-tap login
-  final _usernameCtrl = TextEditingController(
-    text: "user@emychat.com",
-  );
+  final _usernameCtrl = TextEditingController(text: "user@emychat.com");
   final _passwordCtrl = TextEditingController(text: "emychat123");
 
   final _otpCtrl = TextEditingController();
@@ -112,35 +110,15 @@ class _AuthScreenState extends State<AuthScreen> {
             .pushReplacementNamed(AppRouter.workspaceOnboarding);
       }
     } else if (auth.errorMessage != null) {
-      if (auth.errorMessage!.contains('Google OAuth Setup Required')) {
-        showGoogleSetupDialog(
-          context,
-          onConfigured: () async {
-            final success = await auth.continueWithGoogle();
-            if (mounted && success) {
-              final wsController = context.read<WorkspaceController>();
-              await wsController.loadWorkspaces();
-              if (mounted) {
-                Navigator.of(context).pushReplacementNamed(
-                  wsController.hasWorkspace
-                      ? AppRouter.dashboard
-                      : AppRouter.workspaceOnboarding,
-                );
-              }
-            }
-          },
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.error.withValues(alpha: 0.9),
-            content: Text(
-              auth.errorMessage!,
-              style: const TextStyle(color: AppColors.onError),
-            ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error.withValues(alpha: 0.9),
+          content: Text(
+            auth.errorMessage!,
+            style: const TextStyle(color: AppColors.onError),
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
