@@ -1,0 +1,111 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+
+import '../../../core/network/auth_token_manager.dart';
+import '../../../core/utils/web_helper.dart';
+import '../../auth/controllers/auth_controller.dart';
+
+enum SplashDestination { auth, dashboard, channel, popupClosed }
+
+class SplashController extends ChangeNotifier {
+  SplashController({
+    required this._tokenManager,
+    required this._authController,
+  });
+
+  final AuthTokenManager _tokenManager;
+  final AuthController _authController;
+
+  String _statusText = 'Initializing workspace...';
+
+  String get statusText => _statusText;
+
+  bool _isInitialized = false;
+
+  bool get isInitialized => _isInitialized;
+
+  /// Updates splash loading status based on progress.
+  void updateProgress(double progress) {
+    final String newStatus;
+
+    if (progress > 0.8) {
+      newStatus = 'Workspace ready';
+    } else if (progress > 0.4) {
+      newStatus = 'Connecting WhatsApp Engine...';
+    } else {
+      newStatus = 'Initializing workspace...';
+    }
+
+    if (_statusText == newStatus) return;
+
+    _statusText = newStatus;
+    notifyListeners();
+  }
+
+  /// Detects external return callback.
+  bool get isOAuthReturn {
+    try {
+      final uri = Uri.base;
+      final href = uri.toString();
+
+      return uri.queryParameters['tab'] == 'channel' ||
+          uri.queryParameters.containsKey('connected') ||
+          uri.fragment.contains('channel') ||
+          href.contains('tab=channel') ||
+          href.contains('connected=true');
+    } catch (e) {
+      debugPrint('Splash OAuth detection error: $e');
+      return false;
+    }
+  }
+
+  /// Handles OAuth popup callback.
+  bool handleOAuthPopup() {
+    if (!isOAuthReturn) return false;
+    return handleOAuthPopupClose();
+  }
+
+  /// Validates authentication and determines the next destination.
+  Future<SplashDestination> startFlow({required bool isOAuthReturn}) async {
+    if (_isInitialized) {
+      return SplashDestination.dashboard;
+    }
+
+    _isInitialized = true;
+
+    try {
+      final hasSession = await _tokenManager.hasValidSession();
+
+      // OAuth callback: directly open the Channels page.
+      if (isOAuthReturn && hasSession) {
+        await _initializeAuth();
+        if (_authController.isAuthenticated) {
+          return SplashDestination.channel;
+        }
+      }
+
+      // Run authentication validation alongside the splash animation.
+      await Future.delayed(const Duration(milliseconds: 2000));
+
+      if (hasSession) {
+        await _initializeAuth();
+        if (_authController.isAuthenticated) {
+          return SplashDestination.dashboard;
+        }
+      }
+
+      return SplashDestination.auth;
+    } catch (e, stackTrace) {
+      debugPrint('Splash initialization error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      return SplashDestination.auth;
+    }
+  }
+
+  Future<void> _initializeAuth() async {
+    if (!_authController.isAuthenticated) {
+      await _authController.initialize();
+    }
+  }
+}

@@ -1,0 +1,49 @@
+import 'package:emychat/app/theme/app_text_styles.dart';
+import 'package:flutter/material.dart';
+
+class StudioPill extends StatelessWidget {
+  const StudioPill(
+    this.text, {
+    super.key,
+    required this.color,
+    this.dot = true,
+    this.icon,
+  });
+  final String text;
+  final Color color;
+  final bool dot;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .25), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+          ],
+          if (dot && icon == null) ...[
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            text,
+            style: AppTextStyles.t(11.5, w: FontWeight.w600, c: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
