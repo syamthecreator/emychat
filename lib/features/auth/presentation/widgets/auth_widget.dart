@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../controllers/auth_controller.dart';
 
 class AuthBackground extends StatelessWidget {
@@ -497,9 +498,7 @@ class AuthDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
-          child: Divider(color: AppColors.border, thickness: 1),
-        ),
+        const Expanded(child: Divider(color: AppColors.border, thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
@@ -512,9 +511,7 @@ class AuthDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(
-          child: Divider(color: AppColors.border, thickness: 1),
-        ),
+        const Expanded(child: Divider(color: AppColors.border, thickness: 1)),
       ],
     );
   }
@@ -595,10 +592,7 @@ class _GoogleAccountChooserDialogState
               const SizedBox(height: 4),
               const Text(
                 'to continue to EmyChat',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
 
@@ -872,10 +866,7 @@ class _GoogleAccountChooserDialogState
 }
 
 /// Displays interactive Google OAuth setup dialog allowing user to configure credentials.
-void showGoogleSetupDialog(
-  BuildContext context, {
-  VoidCallback? onConfigured,
-}) {
+void showGoogleSetupDialog(BuildContext context, {VoidCallback? onConfigured}) {
   showDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -888,7 +879,8 @@ class _GoogleSetupDialogContent extends StatefulWidget {
   final VoidCallback? onConfigured;
 
   @override
-  State<_GoogleSetupDialogContent> createState() => _GoogleSetupDialogContentState();
+  State<_GoogleSetupDialogContent> createState() =>
+      _GoogleSetupDialogContentState();
 }
 
 class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
@@ -897,7 +889,8 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
   bool _isSaving = false;
   String? _errorMessage;
 
-  static const _redirectUri = 'http://localhost:5001/api/v1/auth/google/callback';
+  static const _redirectUri =
+      'http://localhost:5001/api/v1/auth/google/callback';
 
   @override
   void dispose() {
@@ -992,7 +985,11 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(RemixIcons.close_line, size: 20, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      RemixIcons.close_line,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -1021,7 +1018,11 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                   children: [
                     Row(
                       children: [
-                        const Icon(RemixIcons.external_link_line, size: 16, color: AppColors.primary),
+                        const Icon(
+                          RemixIcons.external_link_line,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         const Text(
                           'Step 1: Get Google Cloud Credentials',
@@ -1035,12 +1036,17 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                         InkWell(
                           onTap: () {
                             launchUrl(
-                              Uri.parse('https://console.cloud.google.com/apis/credentials'),
+                              Uri.parse(
+                                'https://console.cloud.google.com/apis/credentials',
+                              ),
                               mode: LaunchMode.externalApplication,
                             );
                           },
                           child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             child: Text(
                               'Open Console',
                               style: TextStyle(
@@ -1056,16 +1062,27 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                     const SizedBox(height: 8),
                     const Text(
                       'In Google Cloud > APIs & Services > Credentials, create an OAuth 2.0 Client ID (Application Type: Web Application).',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.35),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     const Text(
                       'Authorized Redirect URI:',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(6),
@@ -1084,10 +1101,15 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                             ),
                           ),
                           InkWell(
-                            onTap: () => _copyToClipboard(_redirectUri, 'Redirect URI'),
+                            onTap: () =>
+                                _copyToClipboard(_redirectUri, 'Redirect URI'),
                             child: const Padding(
                               padding: EdgeInsets.all(4),
-                              child: Icon(RemixIcons.file_copy_line, size: 14, color: AppColors.textSecondary),
+                              child: Icon(
+                                RemixIcons.file_copy_line,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],
@@ -1112,21 +1134,47 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
               // Client ID Field
               const Text(
                 'GOOGLE CLIENT ID',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _clientIdCtrl,
-                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
                 decoration: InputDecoration(
                   hintText: 'e.g. 123456789-abc.apps.googleusercontent.com',
-                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  hintStyle: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                   filled: true,
                   fillColor: AppColors.surfaceVariant,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1134,22 +1182,48 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
               // Client Secret Field
               const Text(
                 'GOOGLE CLIENT SECRET',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _clientSecretCtrl,
                 obscureText: true,
-                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
                 decoration: InputDecoration(
                   hintText: 'e.g. GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx',
-                  hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  hintStyle: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                   filled: true,
                   fillColor: AppColors.surfaceVariant,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
               ),
 
@@ -1168,8 +1242,13 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    onPressed: _isSaving
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton.icon(
@@ -1178,15 +1257,27 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
                         ? const SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(RemixIcons.google_fill, size: 16),
-                    label: Text(_isSaving ? 'Connecting...' : 'Save & Connect with Google'),
+                    label: Text(
+                      _isSaving
+                          ? 'Connecting...'
+                          : 'Save & Connect with Google',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
@@ -1198,7 +1289,3 @@ class _GoogleSetupDialogContentState extends State<_GoogleSetupDialogContent> {
     );
   }
 }
-
-
-
-
