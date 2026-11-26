@@ -23,10 +23,10 @@ class ChannelScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Trigger initial load if needed
+    // Trigger initial load once if not yet loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = context.read<ChannelController>();
-      if (controller.whatsAppAccounts.isEmpty && !controller.isLoading) {
+      if (!controller.hasLoadedOnce && !controller.isLoading) {
         controller.loadChannels();
       }
     });
@@ -166,7 +166,7 @@ class ChannelScreen extends StatelessWidget {
         const SizedBox(height: 12),
 
         // 3. Main Connected Channel Cards (Real values only)
-        if (channelController.isLoading && whatsAppAccounts.isEmpty)
+        if (channelController.isLoading && !channelController.hasLoadedOnce)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(

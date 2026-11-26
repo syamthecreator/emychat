@@ -12,6 +12,7 @@ class ChannelController extends ChangeNotifier {
   bool _isLoading = false;
   final bool _isConnecting = false;
   bool _isSyncing = false;
+  bool _hasLoadedOnce = false;
 
   String? _errorMessage;
   String? _successMessage;
@@ -26,6 +27,7 @@ class ChannelController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isConnecting => _isConnecting;
   bool get isSyncing => _isSyncing;
+  bool get hasLoadedOnce => _hasLoadedOnce;
 
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
@@ -66,13 +68,27 @@ class ChannelController extends ChangeNotifier {
     _selectedFilter = 0;
     _isLoading = false;
     _isSyncing = false;
+    _hasLoadedOnce = false;
     _errorMessage = null;
     _successMessage = null;
     notifyListeners();
   }
 
   // Load connected WhatsApp channels
-  Future<void> loadChannels() async {
+  Future<void> loadChannels({bool force = false}) async {
+    if (_isLoading) return;
+
+    if (!force && _hasLoadedOnce) {
+      // Silent background refresh if already loaded once
+      try {
+        _whatsAppAccounts = await _apiService.getWhatsAppChannels();
+        notifyListeners();
+      } catch (e) {
+        debugPrint('ChannelController.loadChannels silent error: $e');
+      }
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -84,6 +100,7 @@ class ChannelController extends ChangeNotifier {
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
+      _hasLoadedOnce = true;
       notifyListeners();
     }
   }
