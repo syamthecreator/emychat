@@ -1,10 +1,12 @@
 import 'dart:convert';
+
+import 'package:emychat/features/pricing/models/pricing_plan_model.dart';
+import 'package:emychat/features/subscription/models/subscription_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../network/api_client.dart';
 import '../network/api_constants.dart';
-import '../../features/pricing/data/models/pricing_plan_model.dart';
-import '../../features/subscription/data/models/subscription_model.dart';
 
 class SubscriptionApiService {
   SubscriptionApiService({required this.apiClient});
@@ -23,7 +25,11 @@ class SubscriptionApiService {
 
       if (response['success'] == true && response['data'] is List) {
         final list = (response['data'] as List)
-            .map((item) => PricingPlanModel.fromJson(Map<String, dynamic>.from(item as Map)))
+            .map(
+              (item) => PricingPlanModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
             .toList();
         if (list.isNotEmpty) return list;
       }
@@ -93,8 +99,8 @@ class SubscriptionApiService {
     String? transactionId,
     String paymentMethod = 'CARD',
   }) async {
-    final txnId = transactionId ??
-        'ac_txn_${DateTime.now().millisecondsSinceEpoch}';
+    final txnId =
+        transactionId ?? 'ac_txn_${DateTime.now().millisecondsSinceEpoch}';
 
     try {
       final response = await apiClient.post(
@@ -192,10 +198,11 @@ class SubscriptionApiService {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('$_localSubscriptionPrefix$workspaceId');
       if (raw == null || raw.isEmpty) return null;
-      return SubscriptionModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      return SubscriptionModel.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
     } catch (_) {
       return null;
     }
   }
 }
-

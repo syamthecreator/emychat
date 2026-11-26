@@ -1,9 +1,9 @@
+import 'package:emychat/features/landing/screens/landing_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:emychat/app/app.dart';
-import 'package:emychat/features/landing/presentation/screens/landing_screen.dart';
 
 void main() {
   setUp(() {

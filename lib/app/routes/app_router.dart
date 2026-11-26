@@ -1,18 +1,18 @@
+import 'package:emychat/features/auth/providers/auth_provider.dart';
+import 'package:emychat/features/landing/screens/landing_screen.dart';
+import 'package:emychat/features/onboarding/screens/checkout_screen.dart';
+import 'package:emychat/features/onboarding/screens/onboarding_complete_screen.dart';
+import 'package:emychat/features/onboarding/screens/workspace_creation_screen.dart';
+import 'package:emychat/features/pricing/screens/pricing_screen.dart';
+import 'package:emychat/features/splash/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/utils/shell_scope.dart';
 import '../../core/widgets/app_shell.dart';
-import '../../features/auth/controllers/auth_controller.dart';
-import '../../features/auth/presentation/models/auth_model.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../../features/landing/presentation/screens/landing_screen.dart';
-import '../../features/onboarding/presentation/screens/checkout_screen.dart';
-import '../../features/onboarding/presentation/screens/onboarding_complete_screen.dart';
-import '../../features/onboarding/presentation/screens/workspace_creation_screen.dart';
-import '../../features/pricing/presentation/screens/pricing_screen.dart';
-import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/auth/models/auth_model.dart';
+import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/register_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -69,7 +69,8 @@ class AppRouter {
         // If OAuth return URL was opened in the main tab, redirect to channels in dashboard
         if (isOAuthReturn) {
           return MaterialPageRoute(
-            builder: (_) => const AppShell(initialDestination: NavDestination.channel),
+            builder: (_) =>
+                const AppShell(initialDestination: NavDestination.channel),
           );
         }
         return MaterialPageRoute(
@@ -91,8 +92,8 @@ class AppRouter {
         );
 
       case register:
-        final planSlug = routeSettings.arguments as String? ??
-            uri.queryParameters['plan'];
+        final planSlug =
+            routeSettings.arguments as String? ?? uri.queryParameters['plan'];
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (_) => RegisterScreen(planSlug: planSlug),
@@ -113,33 +114,25 @@ class AppRouter {
       case workspaceOnboarding:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (context) => _protected(
-            context,
-            const WorkspaceCreationScreen(),
-          ),
+          builder: (context) =>
+              _protected(context, const WorkspaceCreationScreen()),
         );
 
       case checkout:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (context) => _protected(
-            context,
-            const CheckoutScreen(),
-          ),
+          builder: (context) => _protected(context, const CheckoutScreen()),
         );
 
       case onboardingComplete:
         return MaterialPageRoute(
           settings: routeSettings,
-          builder: (context) => _protected(
-            context,
-            const OnboardingCompleteScreen(),
-          ),
+          builder: (context) =>
+              _protected(context, const OnboardingCompleteScreen()),
         );
 
       case dashboard:
-        final initialDestination =
-            routeSettings.arguments as NavDestination?;
+        final initialDestination = routeSettings.arguments as NavDestination?;
         return MaterialPageRoute(
           settings: routeSettings,
           builder: (context) => _protected(
@@ -168,11 +161,7 @@ class AppRouter {
     if (!auth.isAuthenticated) {
       // If user session is not yet loaded, show loading spinner while initializing
       if (auth.isLoading) {
-        return const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       return const AuthScreen();
     }

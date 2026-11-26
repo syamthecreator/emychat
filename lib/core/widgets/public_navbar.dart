@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:remixicon/remixicon.dart';
+
 import '../../app/routes/app_router.dart';
 import '../../app/theme/app_colors.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../constants/asset_constants.dart';
 import '../controller/theme_provider.dart';
-import '../../features/auth/controllers/auth_controller.dart';
 
 class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
   const PublicNavbar({
@@ -27,20 +28,23 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
     final auth = context.watch<AuthController>();
     final isAuth = auth.isAuthenticated;
     final themeProvider = context.watch<ThemeProvider?>();
-    final isDark = themeProvider?.isDarkMode(context) ??
+    final isDark =
+        themeProvider?.isDarkMode(context) ??
         (Theme.of(context).brightness == Brightness.dark);
     final navBg = isDark ? AppColors.midnightNavy : Colors.white;
     final navBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final textTitleColor = isDark ? AppColors.crispWhite : AppColors.lightTextPrimary;
-    final textSubtitleColor = isDark ? AppColors.silver : AppColors.lightTextSecondary;
+    final textTitleColor = isDark
+        ? AppColors.crispWhite
+        : AppColors.lightTextPrimary;
+    final textSubtitleColor = isDark
+        ? AppColors.silver
+        : AppColors.lightTextSecondary;
 
     return Container(
       height: 68,
       decoration: BoxDecoration(
         color: navBg,
-        border: Border(
-          bottom: BorderSide(color: navBorder, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: navBorder, width: 1)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -62,25 +66,37 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                           if (onTabSelected != null) {
                             onTabSelected!(0);
                           } else if (currentRoute != AppRouter.landing) {
-                            Navigator.of(context).pushReplacementNamed(AppRouter.landing);
+                            Navigator.of(context)
+                                .pushReplacementNamed(AppRouter.landing);
                           }
                         },
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 2,
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: isSmallMobile ? 26 : (isMobile ? 28 : 32),
-                                height: isSmallMobile ? 26 : (isMobile ? 28 : 32),
+                                width: isSmallMobile
+                                    ? 26
+                                    : (isMobile ? 28 : 32),
+                                height: isSmallMobile
+                                    ? 26
+                                    : (isMobile ? 28 : 32),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(7),
-                                  gradient: isDark ? AppColors.ctaGradient : null,
+                                  gradient: isDark
+                                      ? AppColors.ctaGradient
+                                      : null,
                                   color: isDark ? null : AppColors.sapphireBlue,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.arcticBlue.withValues(alpha: isDark ? 0.3 : 0.15),
+                                      color: AppColors.arcticBlue.withValues(
+                                        alpha: isDark ? 0.3 : 0.15,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 2),
                                     ),
@@ -90,14 +106,17 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                 child: Image.asset(
                                   AssetConstants.aLogo,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => const Icon(
-                                    RemixIcons.apps_2_fill,
-                                    color: Colors.white,
-                                    size: 15,
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        RemixIcons.apps_2_fill,
+                                        color: Colors.white,
+                                        size: 15,
+                                      ),
                                 ),
                               ),
-                              SizedBox(width: isSmallMobile ? 5 : (isMobile ? 7 : 10)),
+                              SizedBox(
+                                width: isSmallMobile ? 5 : (isMobile ? 7 : 10),
+                              ),
                               Flexible(
                                 child: RichText(
                                   overflow: TextOverflow.ellipsis,
@@ -106,7 +125,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                       TextSpan(
                                         text: 'emy',
                                         style: TextStyle(
-                                          fontSize: isSmallMobile ? 15 : (isMobile ? 16 : 18.5),
+                                          fontSize: isSmallMobile
+                                              ? 15
+                                              : (isMobile ? 16 : 18.5),
                                           fontWeight: FontWeight.w800,
                                           color: textTitleColor,
                                           letterSpacing: -0.5,
@@ -115,7 +136,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                       TextSpan(
                                         text: 'chat',
                                         style: TextStyle(
-                                          fontSize: isSmallMobile ? 15 : (isMobile ? 16 : 18.5),
+                                          fontSize: isSmallMobile
+                                              ? 15
+                                              : (isMobile ? 16 : 18.5),
                                           fontWeight: FontWeight.w600,
                                           color: textSubtitleColor,
                                           letterSpacing: -0.5,
@@ -136,17 +159,31 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                       Container(
                         padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkCard : AppColors.lightCardMuted,
+                          color: isDark
+                              ? AppColors.darkCard
+                              : AppColors.lightCardMuted,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isDark ? AppColors.darkBorderSubtle : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorderSubtle
+                                : AppColors.lightBorder,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _buildTabItem(context, label: 'Features', index: 0, isDark: isDark),
-                            _buildTabItem(context, label: 'Pricing', index: 1, isDark: isDark),
+                            _buildTabItem(
+                              context,
+                              label: 'Features',
+                              index: 0,
+                              isDark: isDark,
+                            ),
+                            _buildTabItem(
+                              context,
+                              label: 'Pricing',
+                              index: 1,
+                              isDark: isDark,
+                            ),
                             _buildTabItem(
                               context,
                               label: 'WhatsApp',
@@ -175,13 +212,19 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                   : AppColors.lightCardMuted,
                               borderRadius: BorderRadius.circular(7),
                               border: Border.all(
-                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                                color: isDark
+                                    ? AppColors.darkBorder
+                                    : AppColors.lightBorder,
                               ),
                             ),
                             child: Icon(
-                              isDark ? RemixIcons.sun_line : RemixIcons.moon_line,
+                              isDark
+                                  ? RemixIcons.sun_line
+                                  : RemixIcons.moon_line,
                               size: isSmallMobile ? 13 : (isMobile ? 14 : 16),
-                              color: isDark ? AppColors.arcticBlue : AppColors.sapphireBlue,
+                              color: isDark
+                                  ? AppColors.arcticBlue
+                                  : AppColors.sapphireBlue,
                             ),
                           ),
                         ),
@@ -190,12 +233,16 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                         if (isAuth) ...[
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
+                              Navigator.of(context)
+                                  .pushReplacementNamed(AppRouter.dashboard);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.sapphireBlue,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(7),
                               ),
@@ -203,14 +250,18 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             child: const Text(
                               'Dashboard',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ] else ...[
                           TextButton(
                             onPressed: () {
                               if (currentRoute != AppRouter.login) {
-                                Navigator.of(context).pushNamed(AppRouter.login);
+                                Navigator.of(context)
+                                    .pushNamed(AppRouter.login);
                               }
                             },
                             style: TextButton.styleFrom(
@@ -218,14 +269,18 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               padding: EdgeInsets.symmetric(
-                                horizontal: isSmallMobile ? 6 : (isMobile ? 8 : 12),
+                                horizontal: isSmallMobile
+                                    ? 6
+                                    : (isMobile ? 8 : 12),
                                 vertical: isSmallMobile ? 6 : 8,
                               ),
                             ),
                             child: Text(
                               'Login',
                               style: TextStyle(
-                                fontSize: isSmallMobile ? 12 : (isMobile ? 12.5 : 13),
+                                fontSize: isSmallMobile
+                                    ? 12
+                                    : (isMobile ? 12.5 : 13),
                                 fontWeight: FontWeight.w600,
                                 color: textTitleColor,
                               ),
@@ -239,7 +294,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                               borderRadius: BorderRadius.circular(7),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.sapphireBlue.withValues(alpha: 0.3),
+                                  color: AppColors.sapphireBlue.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -250,7 +307,8 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                 if (onTabSelected != null) {
                                   onTabSelected!(1); // Go to pricing
                                 } else {
-                                  Navigator.of(context).pushNamed(AppRouter.pricing);
+                                  Navigator.of(context)
+                                      .pushNamed(AppRouter.pricing);
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -260,7 +318,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: isSmallMobile ? 8 : (isMobile ? 12 : 16),
+                                  horizontal: isSmallMobile
+                                      ? 8
+                                      : (isMobile ? 12 : 16),
                                   vertical: isSmallMobile ? 6 : 8,
                                 ),
                                 shape: RoundedRectangleBorder(
@@ -271,7 +331,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                               child: Text(
                                 isSmallMobile ? 'Start' : 'Get Started',
                                 style: TextStyle(
-                                  fontSize: isSmallMobile ? 11.5 : (isMobile ? 12.5 : 13),
+                                  fontSize: isSmallMobile
+                                      ? 11.5
+                                      : (isMobile ? 12.5 : 13),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -280,14 +342,14 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                         ],
                       ],
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    ),
-  );
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildTabItem(
@@ -297,14 +359,15 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
     required bool isDark,
     IconData? icon,
   }) {
-    final activeIndex = selectedTab ??
-        (currentRoute == AppRouter.pricing || currentRoute == '/pricing' ? 1 : 0);
+    final activeIndex =
+        selectedTab ??
+        (currentRoute == AppRouter.pricing || currentRoute == '/pricing'
+            ? 1
+            : 0);
     final isSelected = activeIndex == index;
 
     final activeColor = isDark ? AppColors.arcticBlue : AppColors.sapphireBlue;
-    final activeBg = isDark
-        ? AppColors.darkBorder
-        : Colors.white;
+    final activeBg = isDark ? AppColors.darkBorder : Colors.white;
 
     return InkWell(
       onTap: () {
@@ -347,7 +410,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                 size: 13,
                 color: isSelected
                     ? activeColor
-                    : (isDark ? AppColors.silver : AppColors.lightTextSecondary),
+                    : (isDark
+                          ? AppColors.silver
+                          : AppColors.lightTextSecondary),
               ),
               const SizedBox(width: 5),
             ],
@@ -358,7 +423,9 @@ class PublicNavbar extends StatelessWidget implements PreferredSizeWidget {
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
                     ? (isDark ? Colors.white : AppColors.sapphireBlue)
-                    : (isDark ? AppColors.silver : AppColors.lightTextSecondary),
+                    : (isDark
+                          ? AppColors.silver
+                          : AppColors.lightTextSecondary),
               ),
             ),
           ],

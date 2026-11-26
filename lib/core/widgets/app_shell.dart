@@ -4,20 +4,20 @@ import 'package:emychat/core/utils/shell_scope.dart';
 import 'package:emychat/core/widgets/app_sidebar.dart';
 import 'package:emychat/core/widgets/app_top_bar.dart';
 import 'package:emychat/core/widgets/logout_confirm_dialog.dart';
-import 'package:emychat/features/analytics/presentation/screens/analytics_screen.dart';
-import 'package:emychat/features/auth/controllers/auth_controller.dart';
-import 'package:emychat/features/automation/presentation/screens/automation_screen.dart';
-import 'package:emychat/features/billing/presentation/screens/billing_screen.dart';
-import 'package:emychat/features/channel/presentation/screens/channel_screen.dart';
-import 'package:emychat/features/contacts/presentation/screens/contacts_screen.dart';
-import 'package:emychat/features/dashboard/presentation/screens/overview_screen.dart';
-import 'package:emychat/features/inbox/presentation/screens/inbox_screen.dart';
-import 'package:emychat/features/settings/presentation/screens/settings_screen.dart';
+import 'package:emychat/features/analytics/screens/analytics_screen.dart';
+import 'package:emychat/features/billing/screens/billing_screen.dart';
+import 'package:emychat/features/channel/screens/channel_screen.dart';
+import 'package:emychat/features/contacts/screens/contacts_screen.dart';
+import 'package:emychat/features/dashboard/screens/overview_screen.dart';
+import 'package:emychat/features/inbox/screens/inbox_screen.dart';
+import 'package:emychat/features/settings/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:remixicon/remixicon.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../features/auth/providers/auth_provider.dart';
+import '../../features/automation/screens/automation_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialDestination});

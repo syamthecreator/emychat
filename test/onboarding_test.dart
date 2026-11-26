@@ -1,7 +1,7 @@
+import 'package:emychat/features/pricing/models/pricing_plan_model.dart';
+import 'package:emychat/features/subscription/models/subscription_model.dart';
+import 'package:emychat/features/workspace/models/workspace_model.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:emychat/features/pricing/data/models/pricing_plan_model.dart';
-import 'package:emychat/features/workspace/data/models/workspace_model.dart';
-import 'package:emychat/features/subscription/data/models/subscription_model.dart';
 
 void main() {
   group('SaaS Onboarding & Pricing Plan Model Tests', () {

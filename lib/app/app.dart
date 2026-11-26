@@ -1,6 +1,17 @@
+import 'package:emychat/features/auth/providers/auth_provider.dart';
+import 'package:emychat/features/automation/services/automation_service.dart';
+import 'package:emychat/features/channel/providers/channel_provider.dart';
+import 'package:emychat/features/channel/services/channel_service.dart';
+import 'package:emychat/features/inbox/providers/inbox_provider.dart';
+import 'package:emychat/features/pricing/providers/pricing_provider.dart';
+import 'package:emychat/features/splash/providers/splash_provider.dart';
+import 'package:emychat/features/subscription/providers/subscription_provider.dart';
+import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../features/automation/providers/automation_provider.dart';
+import '../features/inbox/services/inbox_service.dart';
 import 'routes/app_router.dart';
 import 'theme/app_theme.dart';
 import '../core/controller/core_ui_provider.dart';
@@ -10,17 +21,11 @@ import '../core/network/auth_token_manager.dart';
 import '../core/services/auth_api_service.dart';
 import '../core/services/subscription_api_service.dart';
 import '../core/services/workspace_api_service.dart';
-import '../features/auth/controllers/auth_controller.dart';
-import '../features/automation/controller/automation_provider.dart';
-import '../features/automation/service/automation_api_service.dart';
-import '../features/channel/controller/channel_controller.dart';
-import '../features/channel/service/channel_api_service.dart';
-import '../features/inbox/controller/inbox_controller.dart';
-import '../features/inbox/service/inbox_api_service.dart';
-import '../features/pricing/controller/pricing_controller.dart';
-import '../features/splash/controller/splash_controller.dart';
-import '../features/subscription/controller/subscription_controller.dart';
-import '../features/workspace/controller/workspace_controller.dart';
+import '../features/analytics/providers/analytics_provider.dart';
+import '../features/billing/providers/billing_provider.dart';
+import '../features/contacts/providers/contacts_provider.dart';
+import '../features/dashboard/providers/dashboard_provider.dart';
+import '../features/settings/providers/settings_provider.dart';
 
 class EmeyChat extends StatelessWidget {
   const EmeyChat({super.key});
@@ -102,6 +107,21 @@ class EmeyChat extends StatelessWidget {
           create: (context) => AutomationProvider(
             automationApiService: context.read<AutomationApiService>(),
           ),
+        ),
+        ChangeNotifierProvider<BillingProvider>(
+          create: (_) => BillingProvider(),
+        ),
+        ChangeNotifierProvider<ContactsProvider>(
+          create: (_) => ContactsProvider(),
+        ),
+        ChangeNotifierProvider<AnalyticsProvider>(
+          create: (_) => AnalyticsProvider(),
+        ),
+        ChangeNotifierProvider<DashboardProvider>(
+          create: (_) => DashboardProvider(),
+        ),
+        ChangeNotifierProvider<SettingsProvider>(
+          create: (_) => SettingsProvider(),
         ),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ],

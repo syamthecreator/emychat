@@ -1,9 +1,11 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../features/workspace/models/workspace_model.dart';
 import '../network/api_client.dart';
 import '../network/api_constants.dart';
-import '../../features/workspace/data/models/workspace_model.dart';
 
 class WorkspaceApiService {
   WorkspaceApiService({required this.apiClient});
@@ -23,7 +25,11 @@ class WorkspaceApiService {
 
       if (response['success'] == true && response['data'] is List) {
         final list = (response['data'] as List)
-            .map((item) => WorkspaceModel.fromJson(Map<String, dynamic>.from(item as Map)))
+            .map(
+              (item) => WorkspaceModel.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
             .toList();
         if (list.isNotEmpty) {
           await _saveWorkspacesLocally(list);
@@ -31,7 +37,9 @@ class WorkspaceApiService {
         }
       }
     } catch (e) {
-      debugPrint('Workspace API fetch error (using local storage fallback): $e');
+      debugPrint(
+        'Workspace API fetch error (using local storage fallback): $e',
+      );
     }
 
     // Local storage fallback
@@ -111,7 +119,10 @@ class WorkspaceApiService {
 
       final decoded = jsonDecode(raw) as List;
       return decoded
-          .map((item) => WorkspaceModel.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) =>
+                WorkspaceModel.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
           .toList();
     } catch (_) {
       return [];
@@ -134,4 +145,3 @@ class WorkspaceApiService {
     await setActiveWorkspaceId(workspace.id);
   }
 }
-

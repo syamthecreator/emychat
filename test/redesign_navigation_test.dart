@@ -1,3 +1,27 @@
+import 'package:emychat/features/analytics/providers/analytics_provider.dart';
+import 'package:emychat/features/analytics/screens/analytics_screen.dart';
+import 'package:emychat/features/auth/providers/auth_provider.dart';
+import 'package:emychat/features/automation/providers/automation_provider.dart';
+import 'package:emychat/features/automation/services/automation_service.dart';
+import 'package:emychat/features/billing/providers/billing_provider.dart';
+import 'package:emychat/features/billing/screens/billing_screen.dart';
+import 'package:emychat/features/channel/providers/channel_provider.dart';
+import 'package:emychat/features/channel/services/channel_service.dart';
+import 'package:emychat/features/contacts/providers/contacts_provider.dart';
+import 'package:emychat/features/contacts/screens/contacts_screen.dart';
+import 'package:emychat/features/dashboard/providers/dashboard_provider.dart';
+import 'package:emychat/features/dashboard/screens/overview_screen.dart';
+import 'package:emychat/features/inbox/providers/inbox_provider.dart';
+import 'package:emychat/features/inbox/services/inbox_service.dart';
+import 'package:emychat/features/landing/screens/landing_screen.dart';
+import 'package:emychat/features/pricing/models/pricing_plan_model.dart';
+import 'package:emychat/features/pricing/providers/pricing_provider.dart';
+import 'package:emychat/features/pricing/widgets/compact_pricing_card.dart';
+import 'package:emychat/features/settings/providers/settings_provider.dart';
+import 'package:emychat/features/settings/screens/settings_screen.dart';
+import 'package:emychat/features/subscription/providers/subscription_provider.dart';
+import 'package:emychat/features/workspace/models/workspace_model.dart';
+import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -12,24 +36,6 @@ import 'package:emychat/core/services/subscription_api_service.dart';
 import 'package:emychat/core/services/workspace_api_service.dart';
 import 'package:emychat/core/utils/shell_scope.dart';
 import 'package:emychat/core/widgets/status_badge.dart';
-import 'package:emychat/features/analytics/presentation/screens/analytics_screen.dart';
-import 'package:emychat/features/auth/controllers/auth_controller.dart';
-import 'package:emychat/features/automation/controller/automation_provider.dart';
-import 'package:emychat/features/billing/presentation/screens/billing_screen.dart';
-import 'package:emychat/features/channel/controller/channel_controller.dart';
-import 'package:emychat/features/channel/service/channel_api_service.dart';
-import 'package:emychat/features/contacts/presentation/screens/contacts_screen.dart';
-import 'package:emychat/features/dashboard/presentation/screens/overview_screen.dart';
-import 'package:emychat/features/inbox/controller/inbox_controller.dart';
-import 'package:emychat/features/inbox/service/inbox_api_service.dart';
-import 'package:emychat/features/pricing/controller/pricing_controller.dart';
-import 'package:emychat/features/pricing/data/models/pricing_plan_model.dart';
-import 'package:emychat/features/pricing/presentation/widgets/compact_pricing_card.dart';
-import 'package:emychat/features/landing/presentation/screens/landing_screen.dart';
-import 'package:emychat/features/settings/presentation/screens/settings_screen.dart';
-import 'package:emychat/features/subscription/controller/subscription_controller.dart';
-import 'package:emychat/features/workspace/controller/workspace_controller.dart';
-import 'package:emychat/features/workspace/data/models/workspace_model.dart';
 
 class MockSubscriptionApiService extends SubscriptionApiService {
   MockSubscriptionApiService({required super.apiClient});
@@ -69,9 +75,18 @@ Widget createRedesignTestWrapper(Widget child, {NavDestination? destination}) {
   final subService = MockSubscriptionApiService(apiClient: apiClient);
   final channelService = ChannelApiService(apiClient: apiClient);
   final inboxService = InboxApiService(apiClient: apiClient);
+  final autoService = AutomationApiService(apiClient: apiClient);
 
   return MultiProvider(
     providers: [
+      Provider<AuthTokenManager>.value(value: tokenManager),
+      Provider<ApiClient>.value(value: apiClient),
+      Provider<AuthApiService>.value(value: authService),
+      Provider<WorkspaceApiService>.value(value: wsService),
+      Provider<SubscriptionApiService>.value(value: subService),
+      Provider<ChannelApiService>.value(value: channelService),
+      Provider<InboxApiService>.value(value: inboxService),
+      Provider<AutomationApiService>.value(value: autoService),
       ChangeNotifierProvider<CoreUiProvider>(
         create: (_) => CoreUiProvider(initialDestination: destination),
       ),
@@ -95,7 +110,20 @@ Widget createRedesignTestWrapper(Widget child, {NavDestination? destination}) {
         create: (_) => InboxController(inboxApiService: inboxService),
       ),
       ChangeNotifierProvider<AutomationProvider>(
-        create: (_) => AutomationProvider(),
+        create: (_) => AutomationProvider(automationApiService: autoService),
+      ),
+      ChangeNotifierProvider<BillingProvider>(create: (_) => BillingProvider()),
+      ChangeNotifierProvider<ContactsProvider>(
+        create: (_) => ContactsProvider(),
+      ),
+      ChangeNotifierProvider<AnalyticsProvider>(
+        create: (_) => AnalyticsProvider(),
+      ),
+      ChangeNotifierProvider<DashboardProvider>(
+        create: (_) => DashboardProvider(),
+      ),
+      ChangeNotifierProvider<SettingsProvider>(
+        create: (_) => SettingsProvider(),
       ),
       ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
     ],
@@ -169,7 +197,6 @@ void main() {
       expect(find.text('Add Contact'), findsOneWidget);
       expect(find.text('All'), findsOneWidget);
       expect(find.text('WhatsApp'), findsWidgets);
-      expect(find.text('Instagram'), findsWidgets);
       expect(find.text('Rohan Sharma'), findsOneWidget);
     });
 
@@ -190,8 +217,7 @@ void main() {
       expect(find.text('Response Latency'), findsOneWidget);
       expect(find.text('AI Auto-Resolution'), findsOneWidget);
       expect(find.text('Total Messages'), findsOneWidget);
-      expect(find.text('WhatsApp Business API'), findsOneWidget);
-      expect(find.text('Instagram Direct API'), findsOneWidget);
+      expect(find.text('WhatsApp Automation Protocol'), findsOneWidget);
     });
 
     testWidgets('BillingScreen renders subscription tier and resource meters', (
@@ -224,7 +250,7 @@ void main() {
 
       expect(find.text('Workspace Settings'), findsOneWidget);
       expect(find.text('General Profile'), findsOneWidget);
-      expect(find.text('Meta Cloud API Webhook'), findsOneWidget);
+      expect(find.text('WhatsApp Automation Webhook'), findsOneWidget);
     });
 
     testWidgets(
@@ -294,15 +320,6 @@ void main() {
 
       expect(
         find.textContaining('Direct Multi-Device WhatsApp Automation'),
-        findsOneWidget,
-      );
-
-      // Switch to Instagram tab
-      await tester.tap(find.text('Instagram').first);
-      await tester.pumpAndSettle();
-
-      expect(
-        find.textContaining('Turn Instagram Followers Into Paying Customers'),
         findsOneWidget,
       );
     });
