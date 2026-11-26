@@ -10,6 +10,11 @@ class DashboardProvider extends ChangeNotifier {
   bool _isRefreshing = false;
   bool get isRefreshing => _isRefreshing;
 
+  void reset() {
+    _isRefreshing = false;
+    notifyListeners();
+  }
+
   Future<void> refresh() async {
     _isRefreshing = true;
     notifyListeners();

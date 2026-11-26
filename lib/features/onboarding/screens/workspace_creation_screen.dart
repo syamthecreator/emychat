@@ -1,3 +1,4 @@
+import 'package:emychat/features/auth/providers/auth_provider.dart';
 import 'package:emychat/features/pricing/providers/pricing_provider.dart';
 import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +41,11 @@ class _WorkspaceCreationView extends StatelessWidget {
   Future<void> _handleCreateWorkspace(BuildContext context) async {
     final provider = context.read<WorkspaceCreationProvider>();
     final wsController = context.read<WorkspaceController>();
-    final workspace = await provider.submitWorkspace(wsController);
+    final auth = context.read<AuthController?>();
+    final workspace = await provider.submitWorkspace(
+      wsController,
+      userId: auth?.userId,
+    );
 
     if (!context.mounted) return;
 

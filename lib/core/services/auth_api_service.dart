@@ -88,9 +88,13 @@ class AuthApiService {
       );
     }
 
+    final user = data['user'] as Map<String, dynamic>?;
     await _tokenManager.saveTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
+      userId: user?['id'] as String?,
+      email: user?['email'] as String?,
+      name: user?['name'] as String?,
     );
 
     return data;
@@ -146,9 +150,13 @@ class AuthApiService {
       );
     }
 
+    final user = data['user'] as Map<String, dynamic>?;
     await _tokenManager.saveTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
+      userId: user?['id'] as String?,
+      email: user?['email'] as String?,
+      name: user?['name'] as String?,
     );
 
     return data;
@@ -182,7 +190,21 @@ class AuthApiService {
       throw ApiException(message: 'Invalid user profile response from server.');
     }
 
-    return Map<String, dynamic>.from(data);
+    final result = Map<String, dynamic>.from(data);
+    final user = result['user'] as Map<String, dynamic>?;
+    if (user != null) {
+      final access = await _tokenManager.getAccessToken() ?? '';
+      final refresh = await _tokenManager.getRefreshToken() ?? '';
+      await _tokenManager.saveTokens(
+        accessToken: access,
+        refreshToken: refresh,
+        userId: user['id'] as String?,
+        email: user['email'] as String?,
+        name: user['name'] as String?,
+      );
+    }
+
+    return result;
   }
 
   /// Retrieve the saved refresh token.

@@ -6,17 +6,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/workspace/models/workspace_model.dart';
 import '../network/api_client.dart';
 import '../network/api_constants.dart';
+import '../network/auth_token_manager.dart';
 
 class WorkspaceApiService {
-  WorkspaceApiService({required this.apiClient});
+  WorkspaceApiService({required this.apiClient, this.tokenManager});
 
   final ApiClient apiClient;
+  final AuthTokenManager? tokenManager;
 
-  static const String _localWorkspacesKey = 'emychat_local_workspaces_v1';
-  static const String _activeWorkspaceKey = 'emychat_active_workspace_id_v1';
+  String _userWorkspacesKey(String? uid) =>
+      (uid != null && uid.isNotEmpty)
+          ? 'emychat_local_ws_${uid}_v2'
+          : 'emychat_local_ws_guest_v2';
+
+  String _userActiveKey(String? uid) =>
+      (uid != null && uid.isNotEmpty)
+          ? 'emychat_active_ws_${uid}_v2'
+          : 'emychat_active_ws_guest_v2';
+
+  Future<String?> _resolveUserId(String? explicitId) async {
+    if (explicitId != null && explicitId.isNotEmpty) return explicitId;
+    return await tokenManager?.getUserId();
+  }
 
   /// Fetch workspaces for the authenticated user
-  Future<List<WorkspaceModel>> getMyWorkspaces() async {
+  Future<List<WorkspaceModel>> getMyWorkspaces({String? userId}) async {
+    final uid = await _resolveUserId(userId);
     try {
       final response = await apiClient.get(
         ApiConstants.myWorkspaces,
@@ -32,7 +47,7 @@ class WorkspaceApiService {
             )
             .toList();
         if (list.isNotEmpty) {
-          await _saveWorkspacesLocally(list);
+          await _saveWorkspacesLocally(list, userId: uid);
           return list;
         }
       }
@@ -42,8 +57,8 @@ class WorkspaceApiService {
       );
     }
 
-    // Local storage fallback
-    return await _getLocalWorkspaces();
+    // Local storage fallback scoped to user ID
+    return await _getLocalWorkspaces(userId: uid);
   }
 
   /// Create a new workspace
@@ -54,7 +69,9 @@ class WorkspaceApiService {
     String? slug,
     String timezone = 'UTC',
     String country = 'United States',
+    String? userId,
   }) async {
+    final uid = await _resolveUserId(userId);
     try {
       final response = await apiClient.post(
         ApiConstants.workspaces,
@@ -73,7 +90,7 @@ class WorkspaceApiService {
         final created = WorkspaceModel.fromJson(
           Map<String, dynamic>.from(response['data'] as Map),
         );
-        await _addLocalWorkspace(created);
+        await _addLocalWorkspace(created, userId: uid);
         return created;
       }
     } catch (e) {
@@ -93,28 +110,30 @@ class WorkspaceApiService {
       slug: fallbackSlug,
       timezone: timezone,
       country: country,
-      ownerId: 'current_user',
+      ownerId: uid ?? 'current_user',
       createdAt: DateTime.now(),
     );
 
-    await _addLocalWorkspace(fallback);
+    await _addLocalWorkspace(fallback, userId: uid);
     return fallback;
   }
 
-  Future<void> setActiveWorkspaceId(String workspaceId) async {
+  Future<void> setActiveWorkspaceId(String workspaceId, {String? userId}) async {
+    final uid = await _resolveUserId(userId);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_activeWorkspaceKey, workspaceId);
+    await prefs.setString(_userActiveKey(uid), workspaceId);
   }
 
-  Future<String?> getActiveWorkspaceId() async {
+  Future<String?> getActiveWorkspaceId({String? userId}) async {
+    final uid = await _resolveUserId(userId);
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_activeWorkspaceKey);
+    return prefs.getString(_userActiveKey(uid));
   }
 
-  Future<List<WorkspaceModel>> _getLocalWorkspaces() async {
+  Future<List<WorkspaceModel>> _getLocalWorkspaces({String? userId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_localWorkspacesKey);
+      final raw = prefs.getString(_userWorkspacesKey(userId));
       if (raw == null || raw.isEmpty) return [];
 
       final decoded = jsonDecode(raw) as List;
@@ -129,19 +148,19 @@ class WorkspaceApiService {
     }
   }
 
-  Future<void> _saveWorkspacesLocally(List<WorkspaceModel> workspaces) async {
+  Future<void> _saveWorkspacesLocally(List<WorkspaceModel> workspaces, {String? userId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final list = workspaces.map((w) => w.toJson()).toList();
-      await prefs.setString(_localWorkspacesKey, jsonEncode(list));
+      await prefs.setString(_userWorkspacesKey(userId), jsonEncode(list));
     } catch (_) {}
   }
 
-  Future<void> _addLocalWorkspace(WorkspaceModel workspace) async {
-    final list = await _getLocalWorkspaces();
+  Future<void> _addLocalWorkspace(WorkspaceModel workspace, {String? userId}) async {
+    final list = await _getLocalWorkspaces(userId: userId);
     list.removeWhere((w) => w.id == workspace.id || w.slug == workspace.slug);
     list.insert(0, workspace);
-    await _saveWorkspacesLocally(list);
-    await setActiveWorkspaceId(workspace.id);
+    await _saveWorkspacesLocally(list, userId: userId);
+    await setActiveWorkspaceId(workspace.id, userId: userId);
   }
 }

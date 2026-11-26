@@ -17,7 +17,13 @@ import 'package:remixicon/remixicon.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/automation/providers/automation_provider.dart';
 import '../../features/automation/screens/automation_screen.dart';
+import '../../features/channel/providers/channel_provider.dart';
+import '../../features/contacts/providers/contacts_provider.dart';
+import '../../features/dashboard/providers/dashboard_provider.dart';
+import '../../features/inbox/providers/inbox_provider.dart';
+import '../../features/workspace/providers/workspace_provider.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialDestination});
@@ -35,6 +41,22 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _initializeDestination();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadUserData();
+    });
+  }
+
+  void _loadUserData() {
+    final auth = context.read<AuthController?>();
+    final userId = auth?.userId;
+
+    context.read<WorkspaceController?>()?.loadWorkspaces(userId: userId);
+    context.read<ChannelController?>()?.loadChannels();
+    context.read<InboxController?>()?.loadConversations();
+    context.read<InboxController?>()?.loadStats();
+    context.read<AutomationProvider?>()?.loadAutomations();
+    context.read<ContactsProvider?>()?.loadContacts();
+    context.read<DashboardProvider?>()?.refresh();
   }
 
   /// Initializes navigation from the supplied destination or OAuth callback.
@@ -71,6 +93,15 @@ class _AppShellState extends State<AppShell> {
     final confirmed = await LogoutConfirmDialog.show(context);
     if (!confirmed || !mounted) return;
 
+    // 1. Reset all feature providers so no User A data remains in memory
+    context.read<WorkspaceController?>()?.reset();
+    context.read<ChannelController?>()?.reset();
+    context.read<InboxController?>()?.reset();
+    context.read<AutomationProvider?>()?.reset();
+    context.read<ContactsProvider?>()?.reset();
+    context.read<DashboardProvider?>()?.reset();
+
+    // 2. Clear authentication session
     await context.read<AuthController>().signOut();
 
     if (!mounted) return;

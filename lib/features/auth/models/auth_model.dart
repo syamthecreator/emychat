@@ -10,6 +10,8 @@ class AuthModel {
     this.isInitializing = true,
     this.secondsLeft = 0,
     this.isAuthenticated = false,
+    this.userId,
+    this.userName,
     this.userEmail,
     this.userRole,
     this.errorMessage,
@@ -22,6 +24,8 @@ class AuthModel {
   final bool isLoading;
   final int secondsLeft;
   final bool isAuthenticated;
+  final String? userId;
+  final String? userName;
   final String? userEmail;
   final String? userRole;
   final String? errorMessage;
@@ -41,6 +45,8 @@ class AuthModel {
     bool? isInitializing,
     int? secondsLeft,
     bool? isAuthenticated,
+    String? userId,
+    String? userName,
     String? userEmail,
     String? userRole,
     String? errorMessage,
@@ -55,6 +61,8 @@ class AuthModel {
       isInitializing: isInitializing ?? this.isInitializing,
       secondsLeft: secondsLeft ?? this.secondsLeft,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
       userRole: clearRole ? null : userRole ?? this.userRole,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,

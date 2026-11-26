@@ -782,6 +782,19 @@ class AutomationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reset() {
+    _items.clear();
+    _selectedFilter = 0;
+    _selectedChannelFilter = 0;
+    _builderDraft = null;
+    _builderIsEdit = false;
+    _isLoading = false;
+    _isSaving = false;
+    _errorMessage = null;
+    _analytics = null;
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------------------
   // DISPOSE
   // ---------------------------------------------------------------------------

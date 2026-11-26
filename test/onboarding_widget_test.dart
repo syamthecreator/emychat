@@ -47,7 +47,7 @@ class MockWorkspaceApiService extends WorkspaceApiService {
   MockWorkspaceApiService({required super.apiClient});
 
   @override
-  Future<List<WorkspaceModel>> getMyWorkspaces() async {
+  Future<List<WorkspaceModel>> getMyWorkspaces({String? userId}) async {
     return [];
   }
 }

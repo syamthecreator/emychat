@@ -50,6 +50,7 @@ class Automation {
   DateTime? updatedAt;
 
   bool get isWhatsApp => true;
+  bool get isActive => status == AutomationStatus.active;
 
   Automation copy({
     String? id,

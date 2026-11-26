@@ -671,4 +671,23 @@ class InboxController extends ChangeNotifier {
     _selectedConversationId = null;
     notifyListeners();
   }
+
+  void reset() {
+    stopPolling();
+    _conversations = [];
+    _messagesByContact.clear();
+    _selectedConversationId = null;
+    _selectedChannel = 'All';
+    _statusFilter = 'all';
+    _searchQuery = '';
+    _tagFilter = null;
+    _stats = const InboxStatsModel();
+    _isLoadingConversations = false;
+    _isLoadingMessages = false;
+    _isSending = false;
+    _isUploading = false;
+    _errorMessage = null;
+    _replyingToMessage = null;
+    notifyListeners();
+  }
 }

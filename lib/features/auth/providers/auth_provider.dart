@@ -22,6 +22,8 @@ class AuthController extends ChangeNotifier {
   bool get isLoading => _model.isLoading;
   int get secondsLeft => _model.secondsLeft;
   bool get isAuthenticated => _model.isAuthenticated;
+  String? get userId => _model.userId;
+  String? get userName => _model.userName;
   String? get userEmail => _model.userEmail;
   String? get userRole => _model.userRole;
   String? get errorMessage => _model.errorMessage;
@@ -60,6 +62,8 @@ class AuthController extends ChangeNotifier {
 
       _model = _model.copyWith(
         isAuthenticated: true,
+        userId: user['id'] as String?,
+        userName: user['name'] as String?,
         userEmail: user['email'] as String?,
         userRole: 'Creator',
         clearError: true,
@@ -178,6 +182,8 @@ class AuthController extends ChangeNotifier {
       _model = _model.copyWith(
         isLoading: false,
         isAuthenticated: true,
+        userId: user['id'] as String?,
+        userName: user['name'] as String?,
         userEmail: user['email'] as String?,
         userRole: 'Creator',
         successMessage: 'Email verified successfully! Welcome to EmyChat.',
@@ -249,6 +255,8 @@ class AuthController extends ChangeNotifier {
       _model = _model.copyWith(
         isLoading: false,
         isAuthenticated: true,
+        userId: user['id'] as String?,
+        userName: user['name'] as String?,
         userEmail: user['email'] as String?,
         userRole: 'Creator',
         successMessage: 'Welcome to EmyChat workspace!',

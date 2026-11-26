@@ -61,6 +61,16 @@ class ChannelController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void reset() {
+    _whatsAppAccounts = [];
+    _selectedFilter = 0;
+    _isLoading = false;
+    _isSyncing = false;
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+  }
+
   // Load connected WhatsApp channels
   Future<void> loadChannels() async {
     _isLoading = true;

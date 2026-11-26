@@ -1,3 +1,4 @@
+import 'package:emychat/features/auth/providers/auth_provider.dart';
 import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,12 @@ class SettingsScreen extends StatelessWidget {
     if (ws?.name != null) {
       settingsProvider.initFromWorkspaceName(ws!.name);
     }
+
+    final auth = context.watch<AuthController?>();
+    final userEmail = auth?.userEmail ?? '';
+    final userName = auth?.userName ??
+        (userEmail.isNotEmpty ? userEmail.split('@').first : 'User');
+    final userId = auth?.userId ?? 'acc_active_user';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -50,6 +57,104 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // Account & User Profile Section
+                SettingsSectionWidget(
+                  title: 'Account Profile',
+                  description:
+                      'Personal authentication and SaaS membership credentials.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: AppColors.sapphireBlue
+                                .withValues(alpha: 0.2),
+                            child: Text(
+                              userName.isNotEmpty
+                                  ? userName[0].toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                color: AppColors.arcticBlue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  userEmail.isNotEmpty
+                                      ? userEmail
+                                      : 'Active Session',
+                                  style: const TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const StatusBadge(
+                            label: 'Verified User',
+                            type: StatusType.active,
+                            isSmall: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text(
+                              'User ID: ',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                userId,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Workspace Profile Section
                 SettingsSectionWidget(

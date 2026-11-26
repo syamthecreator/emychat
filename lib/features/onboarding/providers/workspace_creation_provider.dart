@@ -62,8 +62,9 @@ class WorkspaceCreationProvider extends ChangeNotifier {
   }
 
   Future<WorkspaceModel?> submitWorkspace(
-    WorkspaceController wsController,
-  ) async {
+    WorkspaceController wsController, {
+    String? userId,
+  }) async {
     if (!formKey.currentState!.validate()) return null;
 
     _isCreating = true;
@@ -77,6 +78,7 @@ class WorkspaceCreationProvider extends ChangeNotifier {
         slug: slugCtrl.text.trim(),
         timezone: _selectedTimezone,
         country: _selectedCountry,
+        userId: userId,
       );
       return workspace;
     } finally {

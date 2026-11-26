@@ -196,14 +196,51 @@ class ContactsScreen extends StatelessWidget {
                                 ),
 
                                 // List of items
-                                for (int i = 0; i < filtered.length; i++) ...[
-                                  if (i > 0)
-                                    const Divider(
-                                      color: AppColors.borderSubtle,
-                                      height: 1,
+                                if (filtered.isEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 40,
+                                      horizontal: 20,
                                     ),
-                                  ContactRowItem(contact: filtered[i]),
-                                ],
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          RemixIcons.contacts_line,
+                                          size: 36,
+                                          color: AppColors.textMuted
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        const Text(
+                                          'No contacts found',
+                                          style: TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'Connect your WhatsApp channel or start chatting to sync contacts automatically.',
+                                          style: TextStyle(
+                                            color: AppColors.textMuted,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else
+                                  for (int i = 0; i < filtered.length; i++) ...[
+                                    if (i > 0)
+                                      const Divider(
+                                        color: AppColors.borderSubtle,
+                                        height: 1,
+                                      ),
+                                    ContactRowItem(contact: filtered[i]),
+                                  ],
                               ],
                             ),
                           ),

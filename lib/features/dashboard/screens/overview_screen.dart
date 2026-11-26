@@ -3,6 +3,7 @@ import 'package:emychat/core/utils/shell_scope.dart';
 import 'package:emychat/core/widgets/app_button.dart';
 import 'package:emychat/core/widgets/status_badge.dart';
 import 'package:emychat/features/channel/providers/channel_provider.dart';
+import 'package:emychat/features/contacts/providers/contacts_provider.dart';
 import 'package:emychat/features/inbox/providers/inbox_provider.dart';
 import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
@@ -23,17 +24,20 @@ class OverviewScreen extends StatelessWidget {
     final inboxController = context.watch<InboxController?>();
     final channelController = context.watch<ChannelController?>();
     final automationProvider = context.watch<AutomationProvider?>();
+    final contactsProvider = context.watch<ContactsProvider?>();
 
-    final unreadChats = inboxController?.stats.unreadConversations ?? 3;
-    final openChats = inboxController?.stats.totalConversations ?? 18;
-    final totalContacts = (inboxController?.stats.totalMessagesToday ?? 0) > 0
-        ? inboxController!.stats.totalMessagesToday
-        : 1284;
-    final activeAutomations = automationProvider?.items.length ?? 4;
+    final unreadChats = inboxController?.stats.unreadConversations ?? 0;
+    final openChats = inboxController?.stats.totalConversations ??
+        (inboxController?.conversations.length ?? 0);
+    final totalContacts = contactsProvider?.allContacts.length ??
+        (inboxController?.conversations.length ?? 0);
+    final activeAutomations = automationProvider?.items.where((a) => a.isActive).length ??
+        (automationProvider?.items.length ?? 0);
 
-    final isWhatsappConnected = channelController?.isWhatsAppConnected ?? true;
+    final isWhatsappConnected = channelController?.isWhatsAppConnected ?? false;
 
-    final connectedChannelsCount = isWhatsappConnected ? 1 : 0;
+    final connectedChannelsCount = channelController?.totalConnectedChannels ??
+        (isWhatsappConnected ? 1 : 0);
 
     return Scaffold(
       backgroundColor: AppColors.background,

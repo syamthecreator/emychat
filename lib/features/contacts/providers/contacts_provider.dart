@@ -53,4 +53,12 @@ class ContactsProvider extends ChangeNotifier {
     _searchQuery = query;
     notifyListeners();
   }
+
+  void reset() {
+    _allContacts = const [];
+    _selectedChannelFilter = 'all';
+    _searchQuery = '';
+    _isLoading = false;
+    notifyListeners();
+  }
 }

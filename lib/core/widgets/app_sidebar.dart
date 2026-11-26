@@ -2,6 +2,7 @@ import 'package:emychat/app/theme/app_colors.dart';
 import 'package:emychat/core/constants/asset_constants.dart';
 import 'package:emychat/core/utils/shell_scope.dart';
 import 'package:emychat/core/widgets/status_badge.dart';
+import 'package:emychat/features/auth/providers/auth_provider.dart';
 import 'package:emychat/features/inbox/providers/inbox_provider.dart';
 import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,12 @@ class AppSidebar extends StatelessWidget {
     final workspaceController = context.watch<WorkspaceController?>();
     final workspaceName =
         workspaceController?.activeWorkspace?.name ?? 'EmyChat Workspace';
+
+    final auth = context.watch<AuthController?>();
+    final userEmail = auth?.userEmail ?? '';
+    final userName = auth?.userName ??
+        (userEmail.isNotEmpty ? userEmail.split('@').first : 'User');
+    final userInitials = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -147,6 +154,7 @@ class AppSidebar extends StatelessWidget {
                   child: Column(
                     children: [
                       if (!compact) ...[
+                        // User Profile summary
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -155,6 +163,65 @@ class AppSidebar extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.borderSubtle),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 13,
+                                backgroundColor: AppColors.sapphireBlue
+                                    .withValues(alpha: 0.2),
+                                child: Text(
+                                  userInitials,
+                                  style: const TextStyle(
+                                    color: AppColors.arcticBlue,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      userName,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      userEmail.isNotEmpty
+                                          ? userEmail
+                                          : 'Online Session',
+                                      style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 10,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: AppColors.borderSubtle),
                           ),
                           child: const Row(
@@ -177,6 +244,24 @@ class AppSidebar extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ] else ...[
+                        Tooltip(
+                          message: '$userName ($userEmail)',
+                          child: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: AppColors.sapphireBlue
+                                .withValues(alpha: 0.2),
+                            child: Text(
+                              userInitials,
+                              style: const TextStyle(
+                                color: AppColors.arcticBlue,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),

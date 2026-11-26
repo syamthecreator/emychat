@@ -24,6 +24,8 @@ import '../core/services/workspace_api_service.dart';
 import '../features/analytics/providers/analytics_provider.dart';
 import '../features/billing/providers/billing_provider.dart';
 import '../features/contacts/providers/contacts_provider.dart';
+import '../features/contacts/repositories/contacts_repository.dart';
+import '../features/contacts/services/contacts_service.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
 import '../features/settings/providers/settings_provider.dart';
 
@@ -51,8 +53,10 @@ class EmeyChat extends StatelessWidget {
                 ..initialize(),
         ),
         Provider<WorkspaceApiService>(
-          create: (context) =>
-              WorkspaceApiService(apiClient: context.read<ApiClient>()),
+          create: (context) => WorkspaceApiService(
+            apiClient: context.read<ApiClient>(),
+            tokenManager: context.read<AuthTokenManager>(),
+          ),
         ),
         ChangeNotifierProvider<WorkspaceController>(
           create: (context) => WorkspaceController(
@@ -112,7 +116,13 @@ class EmeyChat extends StatelessWidget {
           create: (_) => BillingProvider(),
         ),
         ChangeNotifierProvider<ContactsProvider>(
-          create: (_) => ContactsProvider(),
+          create: (context) => ContactsProvider(
+            contactsRepository: ContactsRepository(
+              contactsService: ContactsService(
+                apiClient: context.read<ApiClient>(),
+              ),
+            ),
+          ),
         ),
         ChangeNotifierProvider<AnalyticsProvider>(
           create: (_) => AnalyticsProvider(),

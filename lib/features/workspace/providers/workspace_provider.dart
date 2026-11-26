@@ -30,20 +30,33 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadWorkspaces() async {
+  void reset() {
+    _userWorkspaces = [];
+    _activeWorkspace = null;
+    _isLoading = false;
+    _isCreating = false;
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+  }
+
+  Future<void> loadWorkspaces({String? userId}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final list = await workspaceApiService.getMyWorkspaces();
+      final list = await workspaceApiService.getMyWorkspaces(userId: userId);
       _userWorkspaces = list;
 
-      final savedActiveId = await workspaceApiService.getActiveWorkspaceId();
+      final savedActiveId =
+          await workspaceApiService.getActiveWorkspaceId(userId: userId);
       if (savedActiveId != null && list.any((w) => w.id == savedActiveId)) {
         _activeWorkspace = list.firstWhere((w) => w.id == savedActiveId);
       } else if (list.isNotEmpty) {
         _activeWorkspace = list.first;
+      } else {
+        _activeWorkspace = null;
       }
     } catch (e) {
       _errorMessage = 'Failed to load workspaces';
@@ -61,6 +74,7 @@ class WorkspaceController extends ChangeNotifier {
     String? slug,
     String timezone = 'UTC',
     String country = 'United States',
+    String? userId,
   }) async {
     _isCreating = true;
     _errorMessage = null;
@@ -75,6 +89,7 @@ class WorkspaceController extends ChangeNotifier {
         slug: slug,
         timezone: timezone,
         country: country,
+        userId: userId,
       );
 
       _activeWorkspace = workspace;
@@ -82,7 +97,10 @@ class WorkspaceController extends ChangeNotifier {
         _userWorkspaces.insert(0, workspace);
       }
 
-      await workspaceApiService.setActiveWorkspaceId(workspace.id);
+      await workspaceApiService.setActiveWorkspaceId(
+        workspace.id,
+        userId: userId,
+      );
       _successMessage = 'Workspace created successfully';
       return workspace;
     } catch (e) {
