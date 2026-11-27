@@ -33,12 +33,13 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
     final emyProvider = context.read<EmyProvider>();
 
     try {
-      final file = await FilePicker.pickFile(
+      final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['pdf', 'docx', 'txt', 'md', 'csv'],
       );
 
-      if (file == null) return;
+      if (files.isEmpty) return;
+      final file = files.first;
       final bytes = await file.xFile.readAsBytes();
       if (bytes.isEmpty) {
         if (!mounted) return;
