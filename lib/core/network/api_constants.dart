@@ -39,4 +39,9 @@ abstract final class ApiConstants {
   static const String checkout = '$subscriptions/checkout';
   static const String verifyPayment = '$subscriptions/verify';
   static const String currentSubscription = '$subscriptions/current';
+
+  static const String emy = '/emy';
+  static const String emyChat = '$emy/chat';
+  static const String emyHistory = '$emy/history';
+  static const String emyDocuments = '$emy/documents';
 }

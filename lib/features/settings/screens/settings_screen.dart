@@ -9,6 +9,7 @@ import 'package:emychat/core/widgets/app_button.dart';
 import 'package:emychat/core/widgets/status_badge.dart';
 
 import '../providers/settings_provider.dart';
+import '../widgets/company_documents_section.dart';
 import '../widgets/settings_section_widget.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -359,6 +360,10 @@ class SettingsScreen extends StatelessWidget {
                     },
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Company Knowledge Documents for Emy AI
+                const CompanyDocumentsSection(),
                 const SizedBox(height: 20),
 
                 // Webhook Settings

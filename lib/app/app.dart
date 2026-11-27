@@ -27,6 +27,9 @@ import '../features/contacts/providers/contacts_provider.dart';
 import '../features/contacts/repositories/contacts_repository.dart';
 import '../features/contacts/services/contacts_service.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
+import '../features/emy/providers/emy_provider.dart';
+import '../features/emy/services/emy_api_service.dart';
+import '../features/emy/widgets/emy_floating_assistant.dart';
 import '../features/settings/providers/settings_provider.dart';
 
 class EmeyChat extends StatelessWidget {
@@ -133,6 +136,17 @@ class EmeyChat extends StatelessWidget {
         ChangeNotifierProvider<SettingsProvider>(
           create: (_) => SettingsProvider(),
         ),
+        Provider<EmyApiService>(
+          create: (context) => EmyApiService(
+            apiClient: context.read<ApiClient>(),
+            tokenManager: context.read<AuthTokenManager>(),
+          ),
+        ),
+        ChangeNotifierProvider<EmyProvider>(
+          create: (context) => EmyProvider(
+            emyApiService: context.read<EmyApiService>(),
+          ),
+        ),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(
@@ -145,6 +159,14 @@ class EmeyChat extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             initialRoute: AppRouter.landing,
             onGenerateRoute: AppRouter.generateRoute,
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  ?child,
+                  const EmyFloatingAssistant(),
+                ],
+              );
+            },
           );
         },
       ),
