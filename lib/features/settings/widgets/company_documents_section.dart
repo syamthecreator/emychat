@@ -31,30 +31,39 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
 
   Future<void> _pickAndUpload() async {
     final emyProvider = context.read<EmyProvider>();
-    emyProvider.clearDocNotices();
 
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: const ['pdf', 'docx', 'txt', 'md', 'csv'],
-    );
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'docx', 'txt', 'md', 'csv'],
+      );
 
-    if (file == null) return;
-    final bytes = await file.xFile.readAsBytes();
-    if (bytes.isEmpty) {
+      if (file == null) return;
+      final bytes = await file.xFile.readAsBytes();
+      if (bytes.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('The selected file appears to be empty.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      await emyProvider.uploadDocument(
+        fileName: file.name,
+        bytes: bytes,
+      );
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not read the selected file.'),
+        SnackBar(
+          content: Text('Upload error: ${e.toString().replaceFirst('Exception: ', '')}'),
           backgroundColor: AppColors.error,
         ),
       );
-      return;
     }
-
-    await emyProvider.uploadDocument(
-      fileName: file.name,
-      bytes: bytes,
-    );
   }
 
   Future<void> _confirmDelete(EmyDocument doc) async {
