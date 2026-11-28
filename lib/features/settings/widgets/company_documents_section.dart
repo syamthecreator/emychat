@@ -24,13 +24,14 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<EmyProvider>().loadDocuments();
+        context.read<EmyProvider?>()?.loadDocuments();
       }
     });
   }
 
   Future<void> _pickAndUpload() async {
-    final emyProvider = context.read<EmyProvider>();
+    final emyProvider = context.read<EmyProvider?>();
+    if (emyProvider == null) return;
 
     try {
       final files = await FilePicker.pickFiles(
@@ -52,15 +53,14 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
         return;
       }
 
-      await emyProvider.uploadDocument(
-        fileName: file.name,
-        bytes: bytes,
-      );
+      await emyProvider.uploadDocument(fileName: file.name, bytes: bytes);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Upload error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          content: Text(
+            'Upload error: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -95,13 +95,16 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
     );
 
     if (confirmed == true && mounted) {
-      await context.read<EmyProvider>().deleteDocument(doc.id);
+      await context.read<EmyProvider?>()?.deleteDocument(doc.id);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final emy = context.watch<EmyProvider>();
+    final emy = context.watch<EmyProvider?>();
+    if (emy == null) {
+      return const SizedBox.shrink();
+    }
 
     return SettingsSectionWidget(
       title: 'Company Knowledge Documents (Emy AI)',
@@ -123,10 +126,7 @@ class _CompanyDocumentsSectionState extends State<CompanyDocumentsSection> {
               const Expanded(
                 child: Text(
                   'Supported: PDF, DOCX, TXT, MD, CSV',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ),
             ],

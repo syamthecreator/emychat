@@ -126,6 +126,8 @@ class AuthController extends ChangeNotifier {
       _model = _model.copyWith(
         isLoading: false,
         isAuthenticated: true,
+        userId: user['id'] as String?,
+        userName: user['name'] as String?,
         userEmail: user['email'] as String?,
         userRole: 'Creator',
         successMessage: 'Account created successfully! Welcome to EmyChat.',

@@ -34,12 +34,17 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = context.read<AuthController>();
       if (auth.isAuthenticated) {
         final wsController = context.read<WorkspaceController>();
+        await wsController.loadWorkspaces(userId: auth.userId);
+        if (!mounted) return;
         if (wsController.hasWorkspace) {
-          Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRouter.dashboard,
+            (route) => false,
+          );
         } else {
           Navigator.of(context)
               .pushReplacementNamed(AppRouter.workspaceOnboarding);
@@ -71,11 +76,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (ok) {
       final wsController = context.read<WorkspaceController>();
-      await wsController.loadWorkspaces();
+      await wsController.loadWorkspaces(userId: auth.userId);
       if (!mounted) return;
 
       if (wsController.hasWorkspace) {
-        Navigator.of(context).pushReplacementNamed(AppRouter.dashboard);
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRouter.dashboard,
+          (route) => false,
+        );
       } else {
         Navigator.of(context)
             .pushReplacementNamed(AppRouter.workspaceOnboarding);
@@ -158,6 +166,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (!mounted) return;
     if (ok) {
+      _otpCtrl.clear();
+      _newPasswordCtrl.clear();
+      _confirmPasswordCtrl.clear();
+      _passwordCtrl.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.surfaceVariant,

@@ -19,8 +19,11 @@ class OnboardingCompleteScreen extends StatelessWidget {
   final bool _autoChatConfigured = false;
 
   void _goToDashboard(BuildContext context, {NavDestination? destination}) {
-    Navigator.of(context)
-        .pushReplacementNamed(AppRouter.dashboard, arguments: destination);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRouter.dashboard,
+      (route) => false,
+      arguments: destination,
+    );
   }
 
   @override

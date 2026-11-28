@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "emychat-project"
-  }
+    "default": "emychat-project01"
+  },
+  "targets": {},
+  "etags": {}
 }

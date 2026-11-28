@@ -27,16 +27,20 @@ class OverviewScreen extends StatelessWidget {
     final contactsProvider = context.watch<ContactsProvider?>();
 
     final unreadChats = inboxController?.stats.unreadConversations ?? 0;
-    final openChats = inboxController?.stats.totalConversations ??
+    final openChats =
+        inboxController?.stats.totalConversations ??
         (inboxController?.conversations.length ?? 0);
-    final totalContacts = contactsProvider?.allContacts.length ??
+    final totalContacts =
+        contactsProvider?.allContacts.length ??
         (inboxController?.conversations.length ?? 0);
-    final activeAutomations = automationProvider?.items.where((a) => a.isActive).length ??
+    final activeAutomations =
+        automationProvider?.items.where((a) => a.isActive).length ??
         (automationProvider?.items.length ?? 0);
 
     final isWhatsappConnected = channelController?.isWhatsAppConnected ?? false;
 
-    final connectedChannelsCount = channelController?.totalConnectedChannels ??
+    final connectedChannelsCount =
+        channelController?.totalConnectedChannels ??
         (isWhatsappConnected ? 1 : 0);
 
     return Scaffold(
@@ -52,15 +56,6 @@ class OverviewScreen extends StatelessWidget {
                 // Top Page Header
                 _buildHeader(context, workspaceName),
                 const SizedBox(height: 20),
-
-                // Reconnect alert if channel is disconnected
-                if (!isWhatsappConnected)
-                  _buildChannelAlert(
-                    context,
-                    isWhatsappConnected: isWhatsappConnected,
-                  ),
-
-                if (!isWhatsappConnected) const SizedBox(height: 20),
 
                 // 6 Metrics Grid
                 _buildMetricsGrid(
@@ -187,43 +182,6 @@ class OverviewScreen extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildChannelAlert(
-    BuildContext context, {
-    required bool isWhatsappConnected,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          const Icon(RemixIcons.alert_line, color: AppColors.warning, size: 18),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Action required: WhatsApp channel needs connection or QR pairing.',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          AppButton.secondary(
-            label: 'Connect Channel',
-            size: AppButtonSize.sm,
-            onPressed: () {
-              ShellScope.of(context).goTo(NavDestination.channel);
-            },
-          ),
-        ],
-      ),
     );
   }
 

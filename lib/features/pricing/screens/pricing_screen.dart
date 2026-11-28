@@ -1,4 +1,6 @@
+import 'package:emychat/features/auth/providers/auth_provider.dart';
 import 'package:emychat/features/pricing/providers/pricing_provider.dart';
+import 'package:emychat/features/workspace/providers/workspace_provider.dart';
 import 'package:emychat/features/pricing/widgets/billing_cycle_toggle.dart';
 import 'package:emychat/features/pricing/widgets/compact_pricing_card.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +20,20 @@ class PricingScreen extends StatelessWidget {
 
   void _onChoosePlan(BuildContext context, PricingPlanModel plan) {
     context.read<PricingController>().selectPlan(plan);
+    final auth = context.read<AuthController>();
+    if (auth.isAuthenticated) {
+      final ws = context.read<WorkspaceController>();
+      if (ws.hasWorkspace) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pushReplacementNamed(AppRouter.checkout);
+        }
+      } else {
+        Navigator.of(context).pushReplacementNamed(AppRouter.workspaceOnboarding);
+      }
+      return;
+    }
     Navigator.of(context).pushNamed(AppRouter.register, arguments: plan.slug);
   }
 

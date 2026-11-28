@@ -525,7 +525,8 @@ class _RegisterScreenContent extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             InkWell(
-              onTap: () => Navigator.of(context).pushNamed(AppRouter.login),
+              onTap: () =>
+                  Navigator.of(context).pushReplacementNamed(AppRouter.login),
               child: Text(
                 'Log in',
                 style: AppTextStyles.t(
